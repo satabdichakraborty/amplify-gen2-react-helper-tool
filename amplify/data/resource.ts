@@ -1,17 +1,31 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 
 /*== STEP 1 ===============================================================
-The section below creates a Todo database table with a "content" field. Try
-adding a new "isDone" field as a boolean. The authorization rule below
-specifies that any user authenticated via an API key can "create", "read",
-"update", and "delete" any "Todo" records.
+The section below creates an Item database table for storing question data.
+Each item represents a question with multiple choice responses and rationales.
+The table uses QuestionId as the partition key and CreatedDate as the sort key.
+The authorization rule specifies that any user with an API key can perform
+CRUD operations on the Item records.
 =========================================================================*/
 const schema = a.schema({
-  Todo: a
+  Item: a
     .model({
-      content: a.string(),
+      QuestionId: a.string().required(),  // Partition key
+      CreatedDate: a.string().required(), // Sort key
+      stem: a.string().required(),        // The question text
+      responseA: a.string().required(),   // Option A text
+      rationaleA: a.string().required(),  // Explanation for option A
+      responseB: a.string().required(),   // Option B text
+      rationaleB: a.string().required(),  // Explanation for option B
+      responseC: a.string().required(),   // Option C text
+      rationaleC: a.string().required(),  // Explanation for option C
+      responseD: a.string().required(),   // Option D text
+      rationaleD: a.string().required(),  // Explanation for option D
+      correctResponse: a.string().required(), // The correct answer (A, B, C, or D)
+      responsesJson: a.string().required(),   // Additional response data in JSON format
     })
-    .authorization((allow) => [allow.publicApiKey()]),
+    .authorization((allow) => [allow.publicApiKey()])
+    .identifier(['QuestionId', 'CreatedDate']),
 });
 
 export type Schema = ClientSchema<typeof schema>;
@@ -28,30 +42,41 @@ export const data = defineData({
 });
 
 /*== STEP 2 ===============================================================
-Go to your frontend source code. From your client-side code, generate a
-Data client to make CRUDL requests to your table. (THIS SNIPPET WILL ONLY
-WORK IN THE FRONTEND CODE FILE.)
+To interact with the Item table from your frontend code, generate a Data 
+client using the following code:
 
-Using JavaScript or Next.js React Server Components, Middleware, Server 
-Actions or Pages Router? Review how to generate Data clients for those use
-cases: https://docs.amplify.aws/gen2/build-a-backend/data/connect-to-API/
-=========================================================================*/
-
-/*
 "use client"
 import { generateClient } from "aws-amplify/data";
 import type { Schema } from "@/amplify/data/resource";
 
-const client = generateClient<Schema>() // use this Data client for CRUDL requests
-*/
-
-/*== STEP 3 ===============================================================
-Fetch records from the database and use them in your frontend component.
-(THIS SNIPPET WILL ONLY WORK IN THE FRONTEND CODE FILE.)
+const client = generateClient<Schema>() // use this Data client for CRUD operations
 =========================================================================*/
 
-/* For example, in a React component, you can use this snippet in your
-  function's RETURN statement */
-// const { data: todos } = await client.models.Todo.list()
+/*== STEP 3 ===============================================================
+Example usage in a React component:
 
-// return <ul>{todos.map(todo => <li key={todo.id}>{todo.content}</li>)}</ul>
+// List all items
+const { data: items } = await client.models.Item.list()
+
+// Get a specific item
+const { data: item } = await client.models.Item.get({
+  QuestionId: "123",
+  CreatedDate: "2024-03-14"
+})
+
+// Create a new item
+const newItem = await client.models.Item.create({
+  QuestionId: "123",
+  CreatedDate: new Date().toISOString(),
+  stem: "What is...",
+  responseA: "Option A",
+  rationaleA: "Because...",
+  // ... other required fields
+})
+
+// Delete an item
+await client.models.Item.delete({
+  QuestionId: "123",
+  CreatedDate: "2024-03-14"
+})
+=========================================================================*/
