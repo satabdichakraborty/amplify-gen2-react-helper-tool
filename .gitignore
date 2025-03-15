@@ -12,19 +12,12 @@
 
 # misc
 .DS_Store
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-*.env
 
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
 # Amplify
-*outputs.json
 amplify/backend/amplify-meta.json
 amplify/backend/awscloudformation/
 amplify/backend/function/*/dist/
@@ -42,11 +35,6 @@ amplify/backend/hosting/*/build/
 *.swp
 *.swo
 
-# Local environment
-.env*.local
-.env*.development
-.env*.production
-
 # Logs
 logs
 *.log
@@ -54,7 +42,6 @@ logs
 node_modules
 dist
 dist-ssr
-*.local
 
 # Editor directories and files
 .vscode/*
@@ -69,6 +56,5 @@ dist-ssr
 
 # amplify
 .amplify
-amplify_outputs*
 amplifyconfiguration*
 .cursorrules
