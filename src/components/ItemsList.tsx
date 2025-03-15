@@ -9,10 +9,11 @@ import {
   SpaceBetween,
   Box,
   TextContent,
-  Alert
+  Alert,
+  Modal
 } from '@cloudscape-design/components';
 import { applyMode, Mode } from "@cloudscape-design/global-styles";
-import { listItems, type Item } from '../graphql/operations';
+import { listItems, deleteItem, type Item } from '../graphql/operations';
 
 // Apply light mode to match AWS Console
 applyMode(Mode.Light);
@@ -27,6 +28,8 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
   const navigate = useNavigate();
   const [filteringText, setFilteringText] = useState('');
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
 
   async function loadItems() {
     try {
@@ -40,6 +43,24 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
       console.error('Error loading items:', err);
       setError({
         message: 'Error loading items',
+        details: err instanceof Error ? err.message : String(err)
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDelete(item: Item) {
+    try {
+      setLoading(true);
+      await deleteItem(item.QuestionId, item.CreatedDate);
+      await loadItems(); // Reload the list after deletion
+      setDeleteModalVisible(false);
+      setItemToDelete(null);
+    } catch (err) {
+      console.error('Error deleting item:', err);
+      setError({
+        message: 'Error deleting item',
         details: err instanceof Error ? err.message : String(err)
       });
     } finally {
@@ -99,24 +120,23 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
             {
               id: 'question',
               header: 'Question',
-              cell: (item: Item) => item.stem,
-              sortingField: 'stem'
-            },
-            {
-              id: 'correctAnswer',
-              header: 'Correct Answer',
-              cell: (item: Item) => item.correctResponse,
-              sortingField: 'correctResponse'
+              cell: (item: Item) => item.stem
             },
             {
               id: 'actions',
               header: 'Actions',
               cell: (item: Item) => (
-                <Button onClick={() => navigate(`/items/${item.QuestionId}/edit`, {
-                  state: { item }
-                })}>
-                  Edit
-                </Button>
+                <SpaceBetween direction="horizontal" size="xs">
+                  <Button onClick={() => navigate(`/items/${item.QuestionId}/edit`)}>
+                    Edit
+                  </Button>
+                  <Button variant="danger" onClick={() => {
+                    setItemToDelete(item);
+                    setDeleteModalVisible(true);
+                  }}>
+                    Delete
+                  </Button>
+                </SpaceBetween>
               )
             }
           ]}
@@ -128,18 +148,44 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
               </TextContent>
             </Box>
           }
-          filter={
-            <TextContent>
-              <input
-                type="text"
-                placeholder="Filter items"
-                value={filteringText}
-                onChange={(e) => setFilteringText(e.target.value)}
-              />
-            </TextContent>
+          header={
+            <Header
+              counter={`(${filteredItems.length})`}
+              actions={
+                <SpaceBetween direction="horizontal" size="xs">
+                  <Button onClick={() => navigate('/items/new')}>Add new item</Button>
+                </SpaceBetween>
+              }
+            >
+              Items
+            </Header>
           }
         />
       </SpaceBetween>
+
+      <Modal
+        visible={deleteModalVisible}
+        onDismiss={() => {
+          setDeleteModalVisible(false);
+          setItemToDelete(null);
+        }}
+        header="Delete Item"
+        footer={
+          <SpaceBetween direction="horizontal" size="xs">
+            <Button variant="link" onClick={() => {
+              setDeleteModalVisible(false);
+              setItemToDelete(null);
+            }}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={() => itemToDelete && handleDelete(itemToDelete)}>
+              Delete
+            </Button>
+          </SpaceBetween>
+        }
+      >
+        Are you sure you want to delete this item? This action cannot be undone.
+      </Modal>
     </Container>
   );
 } 

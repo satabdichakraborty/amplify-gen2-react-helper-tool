@@ -67,14 +67,14 @@ export async function updateItem(id: string, createdDate: string, item: Partial<
   }
 }
 
-export async function deleteItem(id: string, createdDate: string): Promise<void> {
+export async function deleteItem(questionId: string, createdDate: string): Promise<void> {
   try {
     await client.models.Item.delete({
-      QuestionId: id,
+      QuestionId: questionId,
       CreatedDate: createdDate
     });
   } catch (error) {
-    console.error('Error in deleteItem:', error);
+    console.error('Error deleting item:', error);
     throw error;
   }
 } 
