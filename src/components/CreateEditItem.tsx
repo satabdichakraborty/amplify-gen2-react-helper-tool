@@ -12,34 +12,22 @@ import AppLayout from "@cloudscape-design/components/app-layout";
 import TextArea from "@cloudscape-design/components/textarea";
 import ColumnLayout from "@cloudscape-design/components/column-layout";
 import Toggle from "@cloudscape-design/components/toggle";
-import Select, { SelectProps } from "@cloudscape-design/components/select";
+import Alert from "@cloudscape-design/components/alert";
+import { client } from "../main";
 
-// Mock data for demonstration - move this to a separate file later
-const mockItems = [
-  { 
-    id: 123456, 
-    content: "What is the capital of France?", 
-    createdAt: new Date().toISOString(), 
-    status: "Active",
-    responses: [
-      { text: "Paris", rationale: "Paris is the capital of France", correct: true },
-      { text: "London", rationale: "London is the capital of UK", correct: false },
-      { text: "Berlin", rationale: "Berlin is the capital of Germany", correct: false },
-      { text: "Madrid", rationale: "Madrid is the capital of Spain", correct: false }
-    ],
-    generalRationale: "This question tests basic geography knowledge."
-  },
-  // ... other mock items
-];
+interface FormErrors {
+  stem?: string;
+  responses?: string[];
+  correctResponse?: string;
+}
 
 export default function CreateEditItem() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const [questionId, setQuestionId] = useState<number>(
-    id ? parseInt(id) : Math.floor(Math.random() * 1000000)
+  const [questionId] = useState<string>(
+    id || Math.floor(Math.random() * 1000000).toString()
   );
   const [stem, setStem] = useState("");
-  const [selectedAction, setSelectedAction] = useState<SelectProps.Option | null>(null);
   const [generalRationale, setGeneralRationale] = useState("");
   const [responses, setResponses] = useState([
     { text: "", rationale: "" },
@@ -48,28 +36,75 @@ export default function CreateEditItem() {
     { text: "", rationale: "" }
   ]);
   const [correctResponse, setCorrectResponse] = useState("0");
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Load existing item data if in edit mode
   useEffect(() => {
-    if (id) {
-      const itemId = parseInt(id);
-      const item = mockItems.find(item => item.id === itemId);
-      if (item) {
-        setQuestionId(item.id);
-        setStem(item.content);
-        if (item.responses) {
-          setResponses(item.responses.map(r => ({ text: r.text, rationale: r.rationale })));
-          const correctIndex = item.responses.findIndex(r => r.correct);
-          if (correctIndex !== -1) {
-            setCorrectResponse(correctIndex.toString());
+    const loadItem = async () => {
+      if (id) {
+        try {
+          setIsLoading(true);
+          const response = await client.models.Item.get({
+            QuestionId: id,
+            CreatedDate: new Date().toISOString()
+          });
+          const item = response.data;
+          if (item) {
+            setStem(item.stem);
+            setResponses([
+              { text: item.responseA, rationale: item.rationaleA },
+              { text: item.responseB, rationale: item.rationaleB },
+              { text: item.responseC, rationale: item.rationaleC },
+              { text: item.responseD, rationale: item.rationaleD }
+            ]);
+            setCorrectResponse(item.correctResponse);
+            setGeneralRationale(item.responsesJson);
           }
-        }
-        if (item.generalRationale) {
-          setGeneralRationale(item.generalRationale);
+        } catch (error) {
+          console.error('Error loading item:', error);
+          setErrorMessage('Failed to load item. Please try again.');
+        } finally {
+          setIsLoading(false);
         }
       }
-    }
+    };
+
+    loadItem();
   }, [id]);
+
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
+
+    // Validate stem
+    if (!stem.trim()) {
+      newErrors.stem = "Stem is required";
+    }
+
+    // Validate responses
+    const responseErrors: string[] = [];
+    responses.forEach((response, index) => {
+      if (!response.text.trim()) {
+        responseErrors[index] = `Response ${index + 1} text is required`;
+      }
+      if (!response.rationale.trim()) {
+        responseErrors[index] = `Response ${index + 1} rationale is required`;
+      }
+    });
+
+    if (responseErrors.length > 0) {
+      newErrors.responses = responseErrors;
+    }
+
+    // Validate at least one correct response is selected
+    if (!correctResponse) {
+      newErrors.correctResponse = "At least one response must be marked as correct";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleResponseChange = (index: number, field: 'text' | 'rationale', value: string) => {
     const newResponses = [...responses];
@@ -77,44 +112,47 @@ export default function CreateEditItem() {
     setResponses(newResponses);
   };
 
-  const handleActionSelect = ({ detail }: { detail: { selectedOption: SelectProps.Option | null } }) => {
-    setSelectedAction(detail.selectedOption);
-    
-    if (!detail.selectedOption?.value) return;
-
-    switch (detail.selectedOption.value) {
-      case 'revise':
-        // TODO: Implement revise functionality
-        console.log('Revising stem and responses...');
-        break;
-      case 'generate':
-        // TODO: Implement generate rationales functionality
-        console.log('Generating rationales...');
-        break;
-      case 'rules':
-        // TODO: Implement run item rules functionality
-        console.log('Running item rules...');
-        break;
+  const handleSave = async () => {
+    if (!validateForm()) {
+      return;
     }
-  };
 
-  const handleSave = () => {
-    const finalResponses = responses.map((response, index) => ({
-      ...response,
-      correct: index.toString() === correctResponse
-    }));
-    
-    const itemData = {
-      id: questionId,
-      content: stem,
-      responses: finalResponses,
-      generalRationale,
-      status: "Active",
-      createdAt: new Date().toISOString()
-    };
+    try {
+      setIsLoading(true);
+      setErrorMessage(null);
 
-    console.log('Saving item:', itemData);
-    navigate('/');
+      const itemData = {
+        QuestionId: questionId,
+        CreatedDate: new Date().toISOString(),
+        stem,
+        responseA: responses[0].text,
+        rationaleA: responses[0].rationale,
+        responseB: responses[1].text,
+        rationaleB: responses[1].rationale,
+        responseC: responses[2].text,
+        rationaleC: responses[2].rationale,
+        responseD: responses[3].text,
+        rationaleD: responses[3].rationale,
+        correctResponse,
+        responsesJson: generalRationale
+      };
+
+      if (id) {
+        await client.models.Item.update({
+          ...itemData,
+          QuestionId: id
+        });
+      } else {
+        await client.models.Item.create(itemData);
+      }
+
+      navigate('/');
+    } catch (error) {
+      console.error('Error saving item:', error);
+      setErrorMessage('Failed to save item. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -129,11 +167,23 @@ export default function CreateEditItem() {
                 {id ? 'Edit Item' : 'Create New Item'}
               </Header>
               
+              {errorMessage && (
+                <Alert type="error" header="Error">
+                  {errorMessage}
+                </Alert>
+              )}
+
               <Form
                 actions={
                   <SpaceBetween direction="horizontal" size="xs">
-                    <Button onClick={() => navigate('/')}>Cancel</Button>
-                    <Button variant="primary" onClick={handleSave}>
+                    <Button onClick={() => navigate('/')} disabled={isLoading}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      variant="primary" 
+                      onClick={handleSave}
+                      loading={isLoading}
+                    >
                       {id ? 'Save changes' : 'Create item'}
                     </Button>
                   </SpaceBetween>
@@ -141,49 +191,30 @@ export default function CreateEditItem() {
               >
                 <SpaceBetween size="l">
                   <Container>
-                    <ColumnLayout columns={2} variant="text-grid">
-                      <FormField
-                        label="Question ID"
-                        description="A unique identifier for this question"
-                      >
-                        <Input
-                          value={questionId.toString()}
-                          disabled
-                        />
-                      </FormField>
-
-                      <FormField
-                        label="Actions"
-                        description="Select an action to perform"
-                      >
-                        <Select
-                          selectedOption={selectedAction}
-                          onChange={handleActionSelect}
-                          options={[
-                            { label: "Generate rationales", value: "generate" },
-                            { label: "Revise stem and responses", value: "revise" },
-                            { label: "Run item rules", value: "rules" }
-                          ]}
-                          placeholder="Select an action"
-                        />
-                      </FormField>
-                    </ColumnLayout>
+                    <FormField
+                      label="Question ID"
+                      description="A unique identifier for this question"
+                    >
+                      <Input
+                        value={questionId}
+                        disabled
+                      />
+                    </FormField>
                   </Container>
 
                   <Container>
-                    <ColumnLayout columns={1} variant="text-grid">
-                      <FormField
-                        label="Stem"
-                        description="The question or scenario presented to the candidate"
-                        stretch
-                      >
-                        <TextArea
-                          value={stem}
-                          onChange={({ detail }) => setStem(detail.value)}
-                          rows={3}
-                        />
-                      </FormField>
-                    </ColumnLayout>
+                    <FormField
+                      label="Stem"
+                      description="The question or scenario presented to the candidate"
+                      errorText={errors.stem}
+                      stretch
+                    >
+                      <TextArea
+                        value={stem}
+                        onChange={({ detail }) => setStem(detail.value)}
+                        rows={3}
+                      />
+                    </FormField>
                   </Container>
 
                   {responses.map((response, index) => (
@@ -214,6 +245,7 @@ export default function CreateEditItem() {
                       <ColumnLayout columns={2} variant="text-grid">
                         <FormField 
                           label="Text"
+                          errorText={errors.responses?.[index]}
                           stretch
                         >
                           <TextArea
@@ -225,6 +257,7 @@ export default function CreateEditItem() {
 
                         <FormField 
                           label="Rationale"
+                          errorText={errors.responses?.[index]}
                           stretch
                         >
                           <TextArea
@@ -238,21 +271,18 @@ export default function CreateEditItem() {
                   ))}
 
                   <Container>
-                    <ColumnLayout columns={1} variant="text-grid">
-                      <FormField
-                        label="General Item Rationale"
-                        description="Provide a general rationale for the entire item"
-                        stretch
-                      >
-                        <TextArea
-                          value={generalRationale}
-                          onChange={({ detail }) => setGeneralRationale(detail.value)}
-                          rows={4}
-                        />
-                      </FormField>
-                    </ColumnLayout>
+                    <FormField
+                      label="General Item Rationale"
+                      description="Provide a general rationale for the entire item"
+                      stretch
+                    >
+                      <TextArea
+                        value={generalRationale}
+                        onChange={({ detail }) => setGeneralRationale(detail.value)}
+                        rows={4}
+                      />
+                    </FormField>
                   </Container>
-
                 </SpaceBetween>
               </Form>
             </SpaceBetween>
