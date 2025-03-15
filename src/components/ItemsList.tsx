@@ -27,7 +27,6 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
   const navigate = useNavigate();
-  const [filteringText, setFilteringText] = useState('');
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
 
@@ -80,11 +79,7 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
     );
   }
 
-  const filteredItems = items.filter(item =>
-    filteringText === '' ||
-    item.QuestionId.toLowerCase().includes(filteringText.toLowerCase()) ||
-    item.stem.toLowerCase().includes(filteringText.toLowerCase())
-  );
+  const filteredItems = items;
 
   return (
     <Container>
@@ -130,7 +125,7 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
                   <Button onClick={() => navigate(`/items/${item.QuestionId}/edit`)}>
                     Edit
                   </Button>
-                  <Button variant="danger" onClick={() => {
+                  <Button onClick={() => {
                     setItemToDelete(item);
                     setDeleteModalVisible(true);
                   }}>
@@ -178,7 +173,7 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
             }}>
               Cancel
             </Button>
-            <Button variant="danger" onClick={() => itemToDelete && handleDelete(itemToDelete)}>
+            <Button onClick={() => itemToDelete && handleDelete(itemToDelete)}>
               Delete
             </Button>
           </SpaceBetween>

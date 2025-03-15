@@ -1,8 +1,7 @@
-import { type Schema } from '../../amplify/data/resource';
 import { client } from '../main';
 
 // Define the Item type using the Schema type and the client's return type
-export type Item = Schema['Item'] & {
+export type Item = {
   QuestionId: string;
   CreatedDate: string;
   stem: string;
@@ -16,6 +15,8 @@ export type Item = Schema['Item'] & {
   rationaleD: string;
   correctResponse: string;
   responsesJson: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export async function listItems(): Promise<Item[]> {

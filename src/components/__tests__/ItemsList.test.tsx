@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { vi } from 'vitest';
 import { ItemsList } from '../ItemsList';
-import { listItems, deleteItem } from '../../graphql/operations';
+import { listItems, deleteItem, type Item } from '../../graphql/operations';
 
 // Mock the router hooks
 vi.mock('react-router-dom', async () => {
@@ -21,7 +21,7 @@ vi.mock('../../graphql/operations', () => ({
 
 describe('ItemsList', () => {
   const mockNavigate = vi.fn();
-  const mockItems = [
+  const mockItems: Item[] = [
     {
       QuestionId: '1',
       CreatedDate: '2024-01-01T00:00:00Z',
@@ -38,7 +38,7 @@ describe('ItemsList', () => {
       responsesJson: '',
       createdAt: '2024-01-01T00:00:00Z',
       updatedAt: '2024-01-01T00:00:00Z'
-    },
+    } as Item,
     {
       QuestionId: '2',
       CreatedDate: '2024-01-02T00:00:00Z',
@@ -55,7 +55,7 @@ describe('ItemsList', () => {
       responsesJson: '',
       createdAt: '2024-01-02T00:00:00Z',
       updatedAt: '2024-01-02T00:00:00Z'
-    }
+    } as Item
   ];
 
   beforeEach(() => {
