@@ -28,8 +28,11 @@ try {
 
 // Generate the client
 console.log('Generating API client...');
-export const client = generateClient<Schema>();
+const client = generateClient<Schema>();
 console.log('API client generated successfully');
+
+// Export the client for use in other files
+export { client };
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
