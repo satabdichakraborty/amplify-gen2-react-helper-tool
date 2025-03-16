@@ -15,6 +15,14 @@ frontend:
         - npm install @cloudscape-design/components @cloudscape-design/global-styles
         - npm install react-router-dom @types/react-router-dom
         - npm install aws-amplify
+        # Create amplify_outputs.json with environment variables
+        - |
+          echo '{
+            "graphqlEndpoint": "'$GRAPHQL_ENDPOINT'",
+            "region": "'$AWS_REGION'",
+            "authMode": "apiKey",
+            "apiKey": "'$API_KEY'"
+          }' > amplify_outputs.json
     build:
       commands:
         - npm run build
