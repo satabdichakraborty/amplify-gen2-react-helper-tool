@@ -11,16 +11,20 @@ import "./index.css";
 try {
   console.log('Configuring Amplify with outputs:', outputs);
   
-  // Create a modified config that uses the proxy URL for development
+  // In production, use the direct URL from outputs
+  // In development, use the proxy URL
+  const isLocalDev = import.meta.env.DEV && window.location.hostname === 'localhost';
+  
   const config = {
     ...outputs,
     data: {
       ...outputs.data,
-      // Use the proxy URL in development
-      url: import.meta.env.DEV ? '/graphql' : outputs.data.url
+      // Use the proxy URL only in local development
+      url: isLocalDev ? '/graphql' : outputs.data.url
     }
   };
   
+  console.log('Using API endpoint:', config.data.url);
   Amplify.configure(config);
   console.log('Amplify configured successfully');
 } catch (error) {

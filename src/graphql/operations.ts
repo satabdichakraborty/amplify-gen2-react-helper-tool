@@ -58,6 +58,8 @@ export async function getItem(id: number, createdDate: string): Promise<Item | n
 
 export async function createItem(item: Partial<Item>): Promise<Item> {
   try {
+    console.log('createItem called with:', JSON.stringify(item, null, 2));
+    
     // Ensure all required fields are present
     const itemWithDefaults = {
       ...item,
@@ -69,10 +71,26 @@ export async function createItem(item: Partial<Item>): Promise<Item> {
       Key: item.Key || item.Rationale?.charAt(0) || 'A'
     };
     
-    const response = await client.models.Item.create(itemWithDefaults as any);
-    return response.data as unknown as Item;
+    console.log('Calling client.models.Item.create with:', JSON.stringify(itemWithDefaults, null, 2));
+    
+    try {
+      const response = await client.models.Item.create(itemWithDefaults as any);
+      console.log('Create item response:', JSON.stringify(response, null, 2));
+      return response.data as unknown as Item;
+    } catch (innerError) {
+      console.error('Error in client.models.Item.create:', innerError);
+      if (innerError instanceof Error) {
+        console.error('Error details:', innerError.message);
+        console.error('Error stack:', innerError.stack);
+      }
+      throw innerError;
+    }
   } catch (error) {
     console.error('Error in createItem:', error);
+    if (error instanceof Error) {
+      console.error('Error details:', error.message);
+      console.error('Error stack:', error.stack);
+    }
     throw error;
   }
 }

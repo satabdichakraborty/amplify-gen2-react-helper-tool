@@ -127,28 +127,37 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
       setError(null);
       setSuccess(false);
 
+      console.log('Starting bulk upload process...');
+      
       let text;
       try {
         // Handle both real File objects and test mocks
         text = typeof selectedFile.text === 'function' 
           ? await selectedFile.text() 
           : selectedFile.toString();
+        console.log('File content loaded successfully');
       } catch (err) {
+        console.error('Error reading file:', err);
         setError(`Error processing file: ${err instanceof Error ? err.message : String(err)}`);
         return;
       }
       
       const rows = parseCSV(text);
+      console.log(`Parsed ${rows.length} rows from CSV`);
 
       const validationError = validateCSV(rows);
       if (validationError) {
+        console.error('CSV validation error:', validationError);
         setError(validationError);
         return;
       }
+      console.log('CSV validation passed');
 
       let successCount = 0;
       for (const row of rows) {
         try {
+          console.log(`Processing row ${successCount + 1}:`, row);
+          
           // Determine the correct answer key
           let correctAnswerKey = row.Key || '';
           
@@ -160,8 +169,9 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
             }
           }
           
-          // Use the updated createItem function
-          await createItem({
+          console.log(`Correct answer key determined: ${correctAnswerKey}`);
+          
+          const itemToCreate = {
             QuestionId: parseInt(row.QuestionId, 10),
             CreatedDate: row.CreatedDate,
             Question: row.Question,
@@ -184,19 +194,30 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
             Tags: row.Tags || '',
             Type: row.Type || 'MCQ',
             Status: row.Status || 'Draft'
-          });
+          };
+          
+          console.log('Attempting to create item:', itemToCreate);
+          
+          // Use the updated createItem function
+          const result = await createItem(itemToCreate);
+          console.log('Item created successfully:', result);
+          
           successCount++;
+          console.log(`Successfully created ${successCount} items so far`);
         } catch (err) {
+          console.error(`Error creating item:`, err);
           setError(`Error uploading row ${successCount + 1}: ${err instanceof Error ? err.message : String(err)}`);
           return;
         }
       }
 
+      console.log(`Bulk upload completed. ${successCount} items created successfully.`);
       setSuccess(true);
       setUploadedCount(successCount);
       setSelectedFile(null);
       onUploadComplete();
     } catch (err) {
+      console.error('Unexpected error during bulk upload:', err);
       setError(`Error processing file: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setUploading(false);
