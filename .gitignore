@@ -30,7 +30,8 @@ amplify/backend/api/*/resolvers/
 amplify/backend/auth/*/build/
 amplify/backend/storage/*/build/
 amplify/backend/hosting/*/build/
-src/amplify_outputs.json
+amplify_outputs.json
+amplify_outputs.backup.json
 
 # IDE
 .idea/
@@ -62,7 +63,3 @@ dist-ssr
 .amplify
 amplifyconfiguration*
 .cursorrules
-
-# Amplify outputs
-amplify_outputs.json
-amplify_outputs.backup.json
