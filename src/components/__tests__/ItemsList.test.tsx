@@ -19,6 +19,15 @@ vi.mock('../../graphql/operations', () => ({
   deleteItem: vi.fn()
 }));
 
+// Mock BulkUpload component
+vi.mock('../BulkUpload', () => ({
+  BulkUpload: vi.fn(({ onUploadComplete }) => (
+    <div data-testid="bulk-upload-modal">
+      <button onClick={onUploadComplete}>Complete Upload</button>
+    </div>
+  ))
+}));
+
 describe('ItemsList', () => {
   const mockNavigate = vi.fn();
   const mockItems: Item[] = [
@@ -125,7 +134,9 @@ describe('ItemsList', () => {
     fireEvent.click(deleteButton);
 
     // Check if confirmation modal is shown
-    expect(screen.getByText('Are you sure you want to delete this item? This action cannot be undone.')).toBeInTheDocument();
+    const deleteModal = screen.getByRole('dialog', { name: 'Delete Item' });
+    expect(deleteModal).toBeInTheDocument();
+    expect(within(deleteModal).getByText('Are you sure you want to delete this item? This action cannot be undone.')).toBeInTheDocument();
   });
 
   it('deletes item when confirmed in modal', async () => {
@@ -146,8 +157,8 @@ describe('ItemsList', () => {
     fireEvent.click(deleteButton);
 
     // Click the confirm delete button in modal
-    const modal = screen.getByRole('dialog');
-    const confirmDeleteButton = within(modal).getByRole('button', { name: 'Delete' });
+    const deleteModal = screen.getByRole('dialog', { name: 'Delete Item' });
+    const confirmDeleteButton = within(deleteModal).getByRole('button', { name: 'Delete' });
     fireEvent.click(confirmDeleteButton);
 
     // Verify deleteItem was called with correct parameters
@@ -179,8 +190,8 @@ describe('ItemsList', () => {
     fireEvent.click(deleteButton);
 
     // Click the confirm delete button in modal
-    const modal = screen.getByRole('dialog');
-    const confirmDeleteButton = within(modal).getByRole('button', { name: 'Delete' });
+    const deleteModal = screen.getByRole('dialog', { name: 'Delete Item' });
+    const confirmDeleteButton = within(deleteModal).getByRole('button', { name: 'Delete' });
     fireEvent.click(confirmDeleteButton);
 
     // Verify error alert is shown
@@ -207,13 +218,13 @@ describe('ItemsList', () => {
     fireEvent.click(deleteButton);
 
     // Click the cancel button in modal
-    const modal = screen.getByRole('dialog');
-    const cancelButton = within(modal).getByRole('button', { name: 'Cancel' });
+    const deleteModal = screen.getByRole('dialog', { name: 'Delete Item' });
+    const cancelButton = within(deleteModal).getByRole('button', { name: 'Cancel' });
     fireEvent.click(cancelButton);
 
     // Verify modal is hidden
     await waitFor(() => {
-      expect(modal).toHaveClass('awsui_hidden_1d2i7_miaej_302');
+      expect(deleteModal).toHaveClass('awsui_hidden_1d2i7_miaej_302');
     });
   });
 
@@ -240,7 +251,7 @@ describe('ItemsList', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/items/new');
   });
 
-  it('has an Upload Items button that navigates correctly', async () => {
+  it('shows upload modal when Upload Items button is clicked', async () => {
     render(
       <MemoryRouter>
         <ItemsList />
@@ -252,14 +263,44 @@ describe('ItemsList', () => {
       expect(screen.getByText('Test Question 1')).toBeInTheDocument();
     });
 
-    // Verify there is exactly one Upload Items button
-    const uploadButton = screen.getByRole('button', { name: 'Upload Items' });
-    expect(uploadButton).toBeInTheDocument();
-
     // Click the Upload Items button
+    const uploadButton = screen.getByRole('button', { name: 'Upload Items' });
     fireEvent.click(uploadButton);
 
-    // Verify navigation
-    expect(mockNavigate).toHaveBeenCalledWith('/items/upload');
+    // Verify upload modal is shown
+    const uploadModal = screen.getByRole('dialog', { name: 'Upload Items' });
+    expect(uploadModal).toBeInTheDocument();
+    expect(screen.getByTestId('bulk-upload-modal')).toBeInTheDocument();
+  });
+
+  it('closes upload modal and refreshes list when upload completes', async () => {
+    render(
+      <MemoryRouter>
+        <ItemsList />
+      </MemoryRouter>
+    );
+
+    // Wait for items to load
+    await waitFor(() => {
+      expect(screen.getByText('Test Question 1')).toBeInTheDocument();
+    });
+
+    // Click the Upload Items button
+    const uploadButton = screen.getByRole('button', { name: 'Upload Items' });
+    fireEvent.click(uploadButton);
+
+    // Get the upload modal
+    const uploadModal = screen.getByRole('dialog', { name: 'Upload Items' });
+    expect(uploadModal).toBeInTheDocument();
+
+    // Click the Complete Upload button
+    const completeButton = within(uploadModal).getByRole('button', { name: 'Complete Upload' });
+    fireEvent.click(completeButton);
+
+    // Verify modal is closed and list is refreshed
+    await waitFor(() => {
+      expect(uploadModal).toHaveClass('awsui_hidden_1d2i7_miaej_302');
+    });
+    expect(listItems).toHaveBeenCalledTimes(2);
   });
 }); 

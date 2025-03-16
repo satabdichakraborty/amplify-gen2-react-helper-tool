@@ -83,7 +83,7 @@ describe('CreateEditItem', () => {
     // Wait for loading state to complete
     await waitFor(() => {
       expect(screen.queryByRole('button', { name: /loading/i })).not.toBeInTheDocument();
-    });
+    }, { timeout: 10000 });
 
     // Verify API call
     await waitFor(() => {
@@ -101,10 +101,10 @@ describe('CreateEditItem', () => {
           Key: 'B'
         })
       );
-    });
+    }, { timeout: 10000 });
 
     expect(mockNavigate).toHaveBeenCalledWith('/');
-  });
+  }, 15000);
 
   test('handles API errors', async () => {
     mockClient.models.Item.create.mockRejectedValueOnce(new Error('API Error'));

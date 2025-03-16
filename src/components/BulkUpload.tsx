@@ -2,8 +2,14 @@ import React, { useState, useCallback } from 'react';
 import { generateClient } from 'aws-amplify/data';
 import { type Schema } from '../../amplify/data/resource';
 import Papa from 'papaparse';
-import { Button, Alert, CircularProgress, Box, Typography } from '@mui/material';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import {
+  Box,
+  SpaceBetween,
+  Button,
+  Alert,
+  Spinner,
+  FormField
+} from '@cloudscape-design/components';
 
 const client = generateClient<Schema>();
 
@@ -39,10 +45,15 @@ interface ValidationError {
   errors: string[];
 }
 
-export const BulkUpload: React.FC = () => {
+interface BulkUploadProps {
+  onUploadComplete?: () => void;
+}
+
+export const BulkUpload: React.FC<BulkUploadProps> = ({ onUploadComplete }) => {
   const [uploading, setUploading] = useState(false);
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [success, setSuccess] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const validateRow = (row: CSVRow): string[] => {
     const errors: string[] = [];
@@ -74,15 +85,23 @@ export const BulkUpload: React.FC = () => {
     return errors;
   };
 
-  const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (file) {
+      setSelectedFile(file);
+      setErrors([]);
+      setSuccess(null);
+    }
+  };
+
+  const handleUpload = useCallback(async () => {
+    if (!selectedFile) return;
 
     setUploading(true);
     setErrors([]);
     setSuccess(null);
 
-    Papa.parse<CSVRow>(file, {
+    Papa.parse<CSVRow>(selectedFile, {
       header: true,
       complete: async (results) => {
         const validationErrors: ValidationError[] = [];
@@ -151,6 +170,9 @@ export const BulkUpload: React.FC = () => {
           })));
 
           setSuccess(`Successfully uploaded ${validRows.length} items`);
+          if (onUploadComplete) {
+            setTimeout(onUploadComplete, 2000); // Give user time to see success message
+          }
         } catch (error: any) {
           setErrors([{ row: 0, errors: [`Upload failed: ${error?.message || 'Unknown error'}`] }]);
         }
@@ -162,57 +184,63 @@ export const BulkUpload: React.FC = () => {
         setUploading(false);
       }
     });
-  }, []);
+  }, [selectedFile, onUploadComplete]);
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h5" gutterBottom>
-        Bulk Upload Items
-      </Typography>
-      
-      <input
-        accept=".csv"
-        style={{ display: 'none' }}
-        id="csv-file-upload"
-        type="file"
-        onChange={handleFileUpload}
-        disabled={uploading}
-      />
-      
-      <label htmlFor="csv-file-upload">
-        <Button
-          variant="contained"
-          component="span"
-          startIcon={<CloudUploadIcon />}
-          disabled={uploading}
-          sx={{ mb: 2 }}
+    <Box padding="l">
+      <SpaceBetween size="l">
+        <FormField
+          label="Select CSV file"
+          description="Choose a CSV file containing the items to upload. The file should include all required fields."
         >
-          Upload CSV File
-        </Button>
-      </label>
+          <input
+            type="file"
+            accept=".csv"
+            onChange={handleFileSelect}
+            disabled={uploading}
+            data-testid="csv-file-input"
+          />
+        </FormField>
 
-      {uploading && (
-        <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
-          <CircularProgress size={24} sx={{ mr: 1 }} />
-          <Typography>Uploading...</Typography>
-        </Box>
-      )}
+        <SpaceBetween size="xs">
+          {selectedFile && (
+            <Button
+              variant="primary"
+              onClick={handleUpload}
+              disabled={uploading || !selectedFile}
+              loading={uploading}
+              ariaLabel="Upload"
+            >
+              Upload
+            </Button>
+          )}
+        </SpaceBetween>
 
-      {success && (
-        <Alert severity="success" sx={{ mt: 2 }}>
-          {success}
-        </Alert>
-      )}
+        {uploading && (
+          <Box textAlign="center">
+            <Spinner size="normal" />
+            <Box variant="p" color="text-status-info" padding={{ top: 'xs' }}>
+              Uploading...
+            </Box>
+          </Box>
+        )}
 
-      {errors.length > 0 && (
-        <Box sx={{ mt: 2 }}>
-          {errors.map((error, index) => (
-            <Alert key={index} severity="error" sx={{ mb: 1 }}>
-              {error.row > 0 ? `Row ${error.row}:` : ''} {error.errors.join(', ')}
-            </Alert>
-          ))}
-        </Box>
-      )}
+        {success && (
+          <Alert type="success">
+            {success}
+          </Alert>
+        )}
+
+        {errors.length > 0 && (
+          <SpaceBetween size="xs">
+            {errors.map((error, index) => (
+              <Alert key={index} type="error">
+                {error.row > 0 ? `Row ${error.row}:` : ''} {error.errors.join(', ')}
+              </Alert>
+            ))}
+          </SpaceBetween>
+        )}
+      </SpaceBetween>
     </Box>
   );
 };

@@ -10,7 +10,16 @@ import "./index.css";
 // Configure Amplify using the outputs directly
 try {
   console.log('Configuring Amplify with outputs:', outputs);
-  Amplify.configure(outputs);
+  Amplify.configure({
+    API: {
+      GraphQL: {
+        endpoint: outputs.graphqlEndpoint,
+        region: outputs.region,
+        defaultAuthMode: "apiKey" as const,
+        apiKey: outputs.apiKey
+      }
+    }
+  });
   console.log('Amplify configured successfully');
 } catch (error) {
   console.error('Error configuring Amplify:', error);

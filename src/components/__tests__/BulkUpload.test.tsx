@@ -1,9 +1,10 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { vi } from 'vitest';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { BulkUpload } from '../BulkUpload';
 
+// Mock the generateClient function
 const mockCreate = vi.hoisted(() => vi.fn());
-
 vi.mock('aws-amplify/data', () => ({
   generateClient: () => ({
     models: {
@@ -15,114 +16,120 @@ vi.mock('aws-amplify/data', () => ({
 }));
 
 describe('BulkUpload', () => {
-  const mockFile = new File(
-    [
-      'QuestionId,Type,Status,Question,Key,Notes,Rationale,CreatedDate,CreatedBy,Response A,Response B,Response C,Response D,Response E,Response F,Rationale A,Rationale B,Rationale C,Rationale D,Rationale E,Rationale F,Topic,Knowledge-Skills,Tags\n' +
-      '1,MCQ,Active,Test question?,A,Note 1,Main rationale,2024-03-15T12:00:00.000Z,user1,A1,B1,C1,D1,E1,F1,RA1,RB1,RC1,RD1,RE1,RF1,Math,Algebra,tag1'
-    ],
-    'test.csv',
-    { type: 'text/csv' }
-  );
-
-  const mockInvalidFile = new File(
-    [
-      'QuestionId,Type,Status,Question,Key,Notes,Rationale,CreatedDate,CreatedBy,Response A,Response B,Response C,Response D,Response E,Response F,Rationale A,Rationale B,Rationale C,Rationale D,Rationale E,Rationale F,Topic,Knowledge-Skills,Tags\n' +
-      '1,MCQ,Active,Test question?,X,Note 1,Main rationale,invalid-date,user1,A1,B1,C1,D1,E1,F1,RA1,RB1,RC1,RD1,RE1,RF1,Math,Algebra,tag1'
-    ],
-    'invalid.csv',
-    { type: 'text/csv' }
-  );
-
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('renders upload button', () => {
-    render(<BulkUpload />);
-    expect(screen.getByText('Upload CSV File')).toBeInTheDocument();
-  });
+  it('handles valid CSV upload', async () => {
+    const onUploadComplete = vi.fn();
+    render(<BulkUpload onUploadComplete={onUploadComplete} />);
 
-  it('handles valid CSV file upload', async () => {
-    mockCreate.mockResolvedValueOnce({ success: true });
-    render(<BulkUpload />);
+    // Create a valid CSV file
+    const validCSV = new File([
+      'QuestionId,Type,Status,Question,Key,Notes,Rationale,CreatedDate,CreatedBy,Response A,Response B,Response C,Response D,Response E,Response F,Rationale A,Rationale B,Rationale C,Rationale D,Rationale E,Rationale F,Topic,Knowledge-Skills,Tags\n' +
+      'Q1,MCQ,Active,Test question?,A,,Test rationale,2024-03-20T12:00:00.000Z,test@example.com,A1,B1,C1,D1,,,RA1,RB1,RC1,RD1,,,Topic 1,Knowledge 1,'
+    ], 'test.csv', { type: 'text/csv' });
 
-    const input = screen.getByLabelText('Upload CSV File');
-    fireEvent.change(input, { target: { files: [mockFile] } });
+    // Get the file input and simulate file selection
+    const fileInput = screen.getByTestId('csv-file-input');
+    await userEvent.upload(fileInput, validCSV);
 
+    // Now that a file is selected, the upload button should appear
+    const uploadButton = await screen.findByRole('button', { name: /upload/i });
+    await userEvent.click(uploadButton);
+
+    // Verify that the API was called with the correct parameters
     await waitFor(() => {
       expect(mockCreate).toHaveBeenCalledWith({
-        QuestionId: '1',
+        QuestionId: 'Q1',
         Type: 'MCQ',
         Status: 'Active',
         Question: 'Test question?',
         Key: 'A',
-        Notes: 'Note 1',
-        Rationale: 'Main rationale',
-        CreatedDate: '2024-03-15T12:00:00.000Z',
-        CreatedBy: 'user1',
+        Notes: '',
+        Rationale: 'Test rationale',
+        CreatedDate: '2024-03-20T12:00:00.000Z',
+        CreatedBy: 'test@example.com',
         responseA: 'A1',
         responseB: 'B1',
         responseC: 'C1',
         responseD: 'D1',
-        responseE: 'E1',
-        responseF: 'F1',
+        responseE: '',
+        responseF: '',
         rationaleA: 'RA1',
         rationaleB: 'RB1',
         rationaleC: 'RC1',
         rationaleD: 'RD1',
-        rationaleE: 'RE1',
-        rationaleF: 'RF1',
-        Topic: 'Math',
-        KnowledgeSkills: 'Algebra',
-        Tags: 'tag1',
+        rationaleE: '',
+        rationaleF: '',
+        Topic: 'Topic 1',
+        KnowledgeSkills: 'Knowledge 1',
+        Tags: '',
         responsesJson: JSON.stringify({
           responses: {
             A: 'A1',
             B: 'B1',
             C: 'C1',
-            D: 'D1',
-            E: 'E1',
-            F: 'F1'
+            D: 'D1'
           },
           rationales: {
             A: 'RA1',
             B: 'RB1',
             C: 'RC1',
-            D: 'RD1',
-            E: 'RE1',
-            F: 'RF1'
+            D: 'RD1'
           }
         })
       });
     });
 
-    expect(await screen.findByText('Successfully uploaded 1 items')).toBeInTheDocument();
+    // Verify success message and callback
+    await screen.findByText('Successfully uploaded 1 items');
+    await waitFor(() => {
+      expect(onUploadComplete).toHaveBeenCalled();
+    }, { timeout: 3000 }); // Account for the 2 second delay
   });
 
-  it('shows validation errors for invalid CSV', async () => {
+  it('handles invalid CSV format', async () => {
     render(<BulkUpload />);
 
-    const input = screen.getByLabelText('Upload CSV File');
-    fireEvent.change(input, { target: { files: [mockInvalidFile] } });
+    // Create an invalid CSV file (missing required fields)
+    const invalidCSV = new File([
+      'QuestionId,Type\n' +
+      'Q1,MCQ'
+    ], 'invalid.csv', { type: 'text/csv' });
 
-    await waitFor(() => {
-      expect(screen.getByText(/Invalid date format/)).toBeInTheDocument();
-      expect(screen.getByText(/Invalid Key. Must be A, B, C, D, E, or F/)).toBeInTheDocument();
-    });
+    // Get the file input and simulate file selection
+    const fileInput = screen.getByTestId('csv-file-input');
+    await userEvent.upload(fileInput, invalidCSV);
+
+    // Now that a file is selected, the upload button should appear
+    const uploadButton = await screen.findByRole('button', { name: /upload/i });
+    await userEvent.click(uploadButton);
+
+    // Verify error message
+    await screen.findByText(/Missing required field/);
+    expect(mockCreate).not.toHaveBeenCalled();
   });
 
-  it('handles upload errors gracefully', async () => {
-    mockCreate.mockRejectedValueOnce(new Error('Network error'));
+  it('handles API errors', async () => {
+    mockCreate.mockRejectedValueOnce(new Error('API Error'));
     render(<BulkUpload />);
 
-    const input = screen.getByLabelText('Upload CSV File');
-    fireEvent.change(input, { target: { files: [mockFile] } });
+    // Create a valid CSV file
+    const validCSV = new File([
+      'QuestionId,Type,Status,Question,Key,Notes,Rationale,CreatedDate,CreatedBy,Response A,Response B,Response C,Response D,Response E,Response F,Rationale A,Rationale B,Rationale C,Rationale D,Rationale E,Rationale F,Topic,Knowledge-Skills,Tags\n' +
+      'Q1,MCQ,Active,Test question?,A,,Test rationale,2024-03-20T12:00:00.000Z,test@example.com,A1,B1,C1,D1,,,RA1,RB1,RC1,RD1,,,Topic 1,Knowledge 1,'
+    ], 'test.csv', { type: 'text/csv' });
 
-    await waitFor(() => {
-      expect(mockCreate).toHaveBeenCalled();
-    });
+    // Get the file input and simulate file selection
+    const fileInput = screen.getByTestId('csv-file-input');
+    await userEvent.upload(fileInput, validCSV);
 
-    const errorAlert = await screen.findByRole('alert');
-    expect(errorAlert).toHaveTextContent('Upload failed: Network error');
+    // Now that a file is selected, the upload button should appear
+    const uploadButton = await screen.findByRole('button', { name: /upload/i });
+    await userEvent.click(uploadButton);
+
+    // Verify error message
+    await screen.findByText(/Upload failed: API Error/);
   });
 }); 

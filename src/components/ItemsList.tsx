@@ -14,6 +14,7 @@ import {
 } from '@cloudscape-design/components';
 import { applyMode, Mode } from "@cloudscape-design/global-styles";
 import { listItems, deleteItem, type Item } from '../graphql/operations';
+import { BulkUpload } from './BulkUpload';
 
 // Apply light mode to match AWS Console
 applyMode(Mode.Light);
@@ -29,6 +30,7 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
   const navigate = useNavigate();
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
+  const [uploadModalVisible, setUploadModalVisible] = useState(false);
 
   async function loadItems() {
     try {
@@ -89,7 +91,7 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
           actions={
             <SpaceBetween direction="horizontal" size="xs">
               <Button onClick={() => navigate('/items/new')}>Add new item</Button>
-              <Button onClick={() => navigate('/items/upload')}>Upload Items</Button>
+              <Button onClick={() => setUploadModalVisible(true)}>Upload Items</Button>
             </SpaceBetween>
           }
         >
@@ -176,6 +178,18 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
         }
       >
         Are you sure you want to delete this item? This action cannot be undone.
+      </Modal>
+
+      <Modal
+        visible={uploadModalVisible}
+        onDismiss={() => setUploadModalVisible(false)}
+        header="Upload Items"
+        size="large"
+      >
+        <BulkUpload onUploadComplete={() => {
+          setUploadModalVisible(false);
+          loadItems();
+        }} />
       </Modal>
     </Container>
   );
