@@ -89,6 +89,7 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
           actions={
             <SpaceBetween direction="horizontal" size="xs">
               <Button onClick={() => navigate('/items/new')}>Add new item</Button>
+              <Button onClick={() => navigate('/items/upload')}>Upload Items</Button>
             </SpaceBetween>
           }
         >

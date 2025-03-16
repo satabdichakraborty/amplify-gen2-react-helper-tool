@@ -239,4 +239,27 @@ describe('ItemsList', () => {
     // Verify navigation
     expect(mockNavigate).toHaveBeenCalledWith('/items/new');
   });
+
+  it('has an Upload Items button that navigates correctly', async () => {
+    render(
+      <MemoryRouter>
+        <ItemsList />
+      </MemoryRouter>
+    );
+
+    // Wait for items to load
+    await waitFor(() => {
+      expect(screen.getByText('Test Question 1')).toBeInTheDocument();
+    });
+
+    // Verify there is exactly one Upload Items button
+    const uploadButton = screen.getByRole('button', { name: 'Upload Items' });
+    expect(uploadButton).toBeInTheDocument();
+
+    // Click the Upload Items button
+    fireEvent.click(uploadButton);
+
+    // Verify navigation
+    expect(mockNavigate).toHaveBeenCalledWith('/items/upload');
+  });
 }); 
