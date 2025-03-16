@@ -7,10 +7,21 @@ import outputs from "../amplify_outputs.json";
 import App from "./App";
 import "./index.css";
 
-// Configure Amplify using the outputs directly
+// Configure Amplify using the outputs with proxy for development
 try {
   console.log('Configuring Amplify with outputs:', outputs);
-  Amplify.configure(outputs);
+  
+  // Create a modified config that uses the proxy URL for development
+  const config = {
+    ...outputs,
+    data: {
+      ...outputs.data,
+      // Use the proxy URL in development
+      url: import.meta.env.DEV ? '/graphql' : outputs.data.url
+    }
+  };
+  
+  Amplify.configure(config);
   console.log('Amplify configured successfully');
 } catch (error) {
   console.error('Error configuring Amplify:', error);

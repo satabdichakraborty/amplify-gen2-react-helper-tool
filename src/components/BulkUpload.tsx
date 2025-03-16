@@ -32,6 +32,7 @@ interface CSVRow {
   rationaleD: string;
   rationaleE?: string;
   rationaleF?: string;
+  Key?: string;
   Rationale?: string;
   Topic?: string;
   KnowledgeSkills?: string;
@@ -78,11 +79,19 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
         return `Row ${i + 1}: CreatedDate must be in YYYY-MM-DD format`;
       }
 
-      // Validate Rationale if provided (should be a single character A-F)
-      if (row.Rationale && row.Rationale.trim()) {
+      // Validate Key if provided (should be a single character A-F)
+      if (row.Key && row.Key.trim()) {
+        const keyChar = row.Key.trim().charAt(0).toUpperCase();
+        if (!['A', 'B', 'C', 'D', 'E', 'F'].includes(keyChar)) {
+          return `Row ${i + 1}: Key must be a single character (A-F) representing the correct answer`;
+        }
+      }
+      
+      // For backward compatibility, also check Rationale field
+      if (!row.Key && row.Rationale && row.Rationale.trim()) {
         const firstChar = row.Rationale.trim().charAt(0).toUpperCase();
         if (!['A', 'B', 'C', 'D', 'E', 'F'].includes(firstChar)) {
-          return `Row ${i + 1}: Rationale must be a single character (A-F) representing the correct answer`;
+          return `Row ${i + 1}: Rationale must be a single character (A-F) representing the correct answer if Key is not provided`;
         }
       }
     }
@@ -140,6 +149,17 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
       let successCount = 0;
       for (const row of rows) {
         try {
+          // Determine the correct answer key
+          let correctAnswerKey = row.Key || '';
+          
+          // For backward compatibility, use Rationale if Key is not provided
+          if (!correctAnswerKey && row.Rationale) {
+            const firstChar = row.Rationale.trim().charAt(0).toUpperCase();
+            if (['A', 'B', 'C', 'D', 'E', 'F'].includes(firstChar)) {
+              correctAnswerKey = firstChar;
+            }
+          }
+          
           // Use the updated createItem function
           await createItem({
             QuestionId: parseInt(row.QuestionId, 10),
@@ -157,6 +177,7 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
             rationaleD: row.rationaleD,
             rationaleE: row.rationaleE,
             rationaleF: row.rationaleF,
+            Key: correctAnswerKey,
             Rationale: row.Rationale || '',
             Topic: row.Topic || '',
             KnowledgeSkills: row.KnowledgeSkills || '',
@@ -253,9 +274,9 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
           <ul>
             <li>CSV file with headers</li>
             <li>Required fields: QuestionId, CreatedDate, Question, responseA-D, rationaleA-D</li>
-            <li>Optional fields: Type, Status, Topic, KnowledgeSkills, Tags</li>
+            <li>Optional fields: responseE, responseF, rationaleE, rationaleF, Key, Type, Status, Topic, KnowledgeSkills, Tags</li>
             <li>Dates must be in YYYY-MM-DD format</li>
-            <li>Rationale should be a single character (A-F) representing the correct answer</li>
+            <li>Key should be a single character (A-F) representing the correct answer</li>
           </ul>
         </TextContent>
       </SpaceBetween>

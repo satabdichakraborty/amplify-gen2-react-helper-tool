@@ -17,14 +17,17 @@ const schema = a.schema({
       rationaleC: a.string().required(),  // Explanation for option C
       responseD: a.string().required(),   // Option D text
       rationaleD: a.string().required(),  // Explanation for option D
-      rationaleE: a.string(),
-      rationaleF: a.string(),
-      Rationale: a.string(),
-      Topic: a.string(),
-      KnowledgeSkills: a.string(),
-      Tags: a.string(),
-      Type: a.string(),
-      Status: a.string(),
+      responseE: a.string(),              // Option E text
+      responseF: a.string(),              // Option F text
+      rationaleE: a.string(),             // Explanation for option E
+      rationaleF: a.string(),             // Explanation for option F
+      Key: a.string(),                    // Correct answer (A, B, C, D, E, or F)
+      Rationale: a.string(),              // General rationale for the question
+      Topic: a.string(),                  // Topic category
+      KnowledgeSkills: a.string(),        // Knowledge/skills tested
+      Tags: a.string(),                   // Tags for searching/filtering
+      Type: a.string(),                   // Question type (MCQ, etc.)
+      Status: a.string(),                 // Status (Draft, Active, etc.)
       createdAt: a.datetime(),
       updatedAt: a.datetime()
     })

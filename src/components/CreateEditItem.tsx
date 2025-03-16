@@ -11,8 +11,25 @@ import BreadcrumbGroup from "@cloudscape-design/components/breadcrumb-group";
 import TextArea from "@cloudscape-design/components/textarea";
 import Alert from "@cloudscape-design/components/alert";
 import AppLayout from "@cloudscape-design/components/app-layout";
-import Grid from "@cloudscape-design/components/grid";
+import Toggle from "@cloudscape-design/components/toggle";
 import { client } from "../main";
+
+// Consistent styles for AWS console-like appearance
+const containerStyles = {
+  padding: '20px',
+  backgroundColor: '#ffffff',
+  borderRadius: '4px',
+  boxShadow: '0 1px 1px 0 rgba(0, 28, 36, 0.1)',
+  marginBottom: '20px'
+};
+
+const responseContainerStyles = {
+  padding: '16px',
+  backgroundColor: '#f8f8f8',
+  borderRadius: '4px',
+  marginBottom: '16px',
+  border: '1px solid #eaeded'
+};
 
 export function CreateEditItem() {
   const navigate = useNavigate();
@@ -70,9 +87,10 @@ export function CreateEditItem() {
             // Optional fields
             if ('rationaleE' in item.data && typeof item.data.rationaleE === 'string') setRationaleE(item.data.rationaleE);
             if ('rationaleF' in item.data && typeof item.data.rationaleF === 'string') setRationaleF(item.data.rationaleF);
-            if ('Rationale' in item.data && typeof item.data.Rationale === 'string') {
-              setRationale(item.data.Rationale);
-              // Set correctAnswer based on the first character of Rationale if it's a valid option
+            if ('Key' in item.data && typeof item.data.Key === 'string') {
+              setCorrectAnswer(item.data.Key);
+            } else if ('Rationale' in item.data && typeof item.data.Rationale === 'string') {
+              // Backward compatibility for old data
               const firstChar = item.data.Rationale.trim().charAt(0).toUpperCase();
               if (['A', 'B', 'C', 'D', 'E', 'F'].includes(firstChar)) {
                 setCorrectAnswer(firstChar);
@@ -83,13 +101,13 @@ export function CreateEditItem() {
                 const parsedJson = JSON.parse(item.data.responsesJson);
                 if (parsedJson.correctAnswer) {
                   setCorrectAnswer(parsedJson.correctAnswer);
-                  // Convert JSON to string format
-                  setRationale(parsedJson.correctAnswer);
                 }
               } catch (e) {
                 console.error('Error parsing responsesJson:', e);
-                setRationale('');
               }
+            }
+            if ('Rationale' in item.data && typeof item.data.Rationale === 'string') {
+              setRationale(item.data.Rationale);
             }
             if ('Topic' in item.data && typeof item.data.Topic === 'string') setTopic(item.data.Topic);
             if ('KnowledgeSkills' in item.data && typeof item.data.KnowledgeSkills === 'string') setKnowledgeSkills(item.data.KnowledgeSkills);
@@ -106,11 +124,6 @@ export function CreateEditItem() {
     }
     fetchItem();
   }, [id, createdDate]);
-
-  // Update Rationale when correctAnswer changes
-  useEffect(() => {
-    setRationale(correctAnswer);
-  }, [correctAnswer]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, any> = {};
@@ -211,6 +224,7 @@ export function CreateEditItem() {
         rationaleD,
         rationaleE,
         rationaleF,
+        Key: correctAnswer,
         Rationale: rationale,
         Topic: topic,
         KnowledgeSkills: knowledgeSkills,
@@ -237,6 +251,64 @@ export function CreateEditItem() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Function to render a response section with consistent styling
+  const renderResponseSection = (
+    letter: string, 
+    responseValue: string, 
+    rationaleValue: string, 
+    index: number
+  ) => {
+    return (
+      <Container>
+        <div style={responseContainerStyles}>
+          <FormField
+            label={
+              <SpaceBetween direction="horizontal" size="xs" alignItems="center">
+                <span style={{ fontWeight: 'bold' }}>Response {letter}</span>
+                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ marginRight: '12px', fontWeight: correctAnswer === letter ? 'bold' : 'normal' }}>Correct</span>
+                  <Toggle
+                    checked={correctAnswer === letter}
+                    onChange={({ detail }) => {
+                      if (detail.checked) {
+                        setCorrectAnswer(letter);
+                      }
+                    }}
+                  />
+                </div>
+              </SpaceBetween>
+            }
+          >
+            <SpaceBetween size="l">
+              <FormField
+                label="Text"
+                errorText={error}
+                stretch
+              >
+                <TextArea
+                  value={responseValue}
+                  onChange={({ detail }) => handleResponseChange(index, 'text', detail.value)}
+                  rows={4}
+                />
+              </FormField>
+              <FormField
+                label="Rationale"
+                errorText={error}
+                stretch
+              >
+                <TextArea
+                  value={rationaleValue}
+                  onChange={({ detail }) => handleResponseChange(index, 'rationale', detail.value)}
+                  rows={4}
+                />
+              </FormField>
+            </SpaceBetween>
+          </FormField>
+        </div>
+      </Container>
+    );
   };
 
   return (
@@ -276,211 +348,54 @@ export function CreateEditItem() {
                 }
               >
                 <SpaceBetween size="l">
+                  {/* Basic Information Section */}
                   <Container>
-                    <FormField
-                      label="Question ID"
-                      description="A unique identifier for this question"
-                    >
-                      <Input
-                        value={questionId.toString()}
-                        disabled
-                      />
-                    </FormField>
+                    <div style={containerStyles}>
+                      <SpaceBetween size="l">
+                        <Header variant="h2">Basic Information</Header>
+                        
+                        <FormField
+                          label="Question ID"
+                          description="A unique identifier for this question"
+                        >
+                          <Input
+                            value={questionId.toString()}
+                            disabled
+                          />
+                        </FormField>
+
+                        <FormField
+                          label="Question"
+                          description="The question or scenario presented to the candidate"
+                          errorText={error}
+                          stretch
+                        >
+                          <TextArea
+                            value={question}
+                            onChange={({ detail }) => setQuestion(detail.value)}
+                            rows={3}
+                          />
+                        </FormField>
+                      </SpaceBetween>
+                    </div>
                   </Container>
 
+                  {/* Responses Section */}
                   <Container>
-                    <FormField
-                      label="Question"
-                      description="The question or scenario presented to the candidate"
-                      errorText={error}
-                      stretch
-                    >
-                      <TextArea
-                        value={question}
-                        onChange={({ detail }) => setQuestion(detail.value)}
-                        rows={3}
-                      />
-                    </FormField>
-                  </Container>
-
-                  {/* Response A and Rationale A side by side */}
-                  <Container>
-                    <Grid
-                      gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}
-                    >
-                      <FormField
-                        label="Response A"
-                        errorText={error}
-                        stretch
-                      >
-                        <TextArea
-                          value={responseA}
-                          onChange={({ detail }) => handleResponseChange(0, 'text', detail.value)}
-                          rows={4}
-                        />
-                      </FormField>
-                      <FormField
-                        label="Rationale A"
-                        errorText={error}
-                        stretch
-                      >
-                        <TextArea
-                          value={rationaleA}
-                          onChange={({ detail }) => handleResponseChange(0, 'rationale', detail.value)}
-                          rows={4}
-                        />
-                      </FormField>
-                    </Grid>
-                  </Container>
-
-                  {/* Response B and Rationale B side by side */}
-                  <Container>
-                    <Grid
-                      gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}
-                    >
-                      <FormField
-                        label="Response B"
-                        errorText={error}
-                        stretch
-                      >
-                        <TextArea
-                          value={responseB}
-                          onChange={({ detail }) => handleResponseChange(1, 'text', detail.value)}
-                          rows={4}
-                        />
-                      </FormField>
-                      <FormField
-                        label="Rationale B"
-                        errorText={error}
-                        stretch
-                      >
-                        <TextArea
-                          value={rationaleB}
-                          onChange={({ detail }) => handleResponseChange(1, 'rationale', detail.value)}
-                          rows={4}
-                        />
-                      </FormField>
-                    </Grid>
-                  </Container>
-
-                  {/* Response C and Rationale C side by side */}
-                  <Container>
-                    <Grid
-                      gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}
-                    >
-                      <FormField
-                        label="Response C"
-                        errorText={error}
-                        stretch
-                      >
-                        <TextArea
-                          value={responseC}
-                          onChange={({ detail }) => handleResponseChange(2, 'text', detail.value)}
-                          rows={4}
-                        />
-                      </FormField>
-                      <FormField
-                        label="Rationale C"
-                        errorText={error}
-                        stretch
-                      >
-                        <TextArea
-                          value={rationaleC}
-                          onChange={({ detail }) => handleResponseChange(2, 'rationale', detail.value)}
-                          rows={4}
-                        />
-                      </FormField>
-                    </Grid>
-                  </Container>
-
-                  {/* Response D and Rationale D side by side */}
-                  <Container>
-                    <Grid
-                      gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}
-                    >
-                      <FormField
-                        label="Response D"
-                        errorText={error}
-                        stretch
-                      >
-                        <TextArea
-                          value={responseD}
-                          onChange={({ detail }) => handleResponseChange(3, 'text', detail.value)}
-                          rows={4}
-                        />
-                      </FormField>
-                      <FormField
-                        label="Rationale D"
-                        errorText={error}
-                        stretch
-                      >
-                        <TextArea
-                          value={rationaleD}
-                          onChange={({ detail }) => handleResponseChange(3, 'rationale', detail.value)}
-                          rows={4}
-                        />
-                      </FormField>
-                    </Grid>
-                  </Container>
-
-                  {/* Response E and Rationale E side by side */}
-                  <Container>
-                    <Grid
-                      gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}
-                    >
-                      <FormField
-                        label="Response E"
-                        errorText={error}
-                        stretch
-                      >
-                        <TextArea
-                          value={responseE}
-                          onChange={({ detail }) => handleResponseChange(4, 'text', detail.value)}
-                          rows={4}
-                        />
-                      </FormField>
-                      <FormField
-                        label="Rationale E"
-                        errorText={error}
-                        stretch
-                      >
-                        <TextArea
-                          value={rationaleE}
-                          onChange={({ detail }) => handleResponseChange(4, 'rationale', detail.value)}
-                          rows={4}
-                        />
-                      </FormField>
-                    </Grid>
-                  </Container>
-
-                  {/* Response F and Rationale F side by side */}
-                  <Container>
-                    <Grid
-                      gridDefinition={[{ colspan: 6 }, { colspan: 6 }]}
-                    >
-                      <FormField
-                        label="Response F"
-                        errorText={error}
-                        stretch
-                      >
-                        <TextArea
-                          value={responseF}
-                          onChange={({ detail }) => handleResponseChange(5, 'text', detail.value)}
-                          rows={4}
-                        />
-                      </FormField>
-                      <FormField
-                        label="Rationale F"
-                        errorText={error}
-                        stretch
-                      >
-                        <TextArea
-                          value={rationaleF}
-                          onChange={({ detail }) => handleResponseChange(5, 'rationale', detail.value)}
-                          rows={4}
-                        />
-                      </FormField>
-                    </Grid>
+                    <div style={containerStyles}>
+                      <SpaceBetween size="l">
+                        <Header variant="h2">Responses</Header>
+                        
+                        {renderResponseSection('A', responseA, rationaleA, 0)}
+                        {renderResponseSection('B', responseB, rationaleB, 1)}
+                        {renderResponseSection('C', responseC, rationaleC, 2)}
+                        {renderResponseSection('D', responseD, rationaleD, 3)}
+                        
+                        {/* Optional responses */}
+                        {(responseE || !isEditing) && renderResponseSection('E', responseE, rationaleE, 4)}
+                        {(responseF || !isEditing) && renderResponseSection('F', responseF, rationaleF, 5)}
+                      </SpaceBetween>
+                    </div>
                   </Container>
                 </SpaceBetween>
               </Form>
@@ -492,15 +407,12 @@ export function CreateEditItem() {
         <BreadcrumbGroup
           items={[
             { text: "Home", href: "/" },
-            { text: "Items", href: "/items" },
-            { text: id ? "Edit item" : "Create new item", href: "#" }
+            { text: id ? "Edit Item" : "Create Item", href: "#" }
           ]}
-          ariaLabel="Breadcrumbs"
         />
       }
       navigationHide
       toolsHide
-      contentType="form"
     />
   );
 } 

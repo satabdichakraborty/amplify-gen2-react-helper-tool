@@ -36,7 +36,7 @@ describe('BulkUpload', () => {
     expect(screen.getByText('Select CSV file')).toBeInTheDocument();
   });
 
-  it('handles valid CSV upload', async () => {
+  it('handles valid CSV upload with Key field', async () => {
     render(
       <BulkUpload
         visible={true}
@@ -45,7 +45,69 @@ describe('BulkUpload', () => {
       />
     );
 
-    // Create a test CSV file
+    // Create a test CSV file with Key field
+    const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,rationaleA,rationaleB,rationaleC,rationaleD,Key,Rationale
+123,2023-01-01,Test question,MCQ,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,A,Additional rationale`;
+    
+    const file = new File([csvContent], 'test.csv', { type: 'text/csv' });
+    // Add toString method for tests
+    Object.defineProperty(file, 'toString', {
+      value: function() { return csvContent; }
+    });
+    
+    // Select the file
+    const fileInput = screen.getByLabelText('Choose file');
+    await userEvent.upload(fileInput, file);
+    
+    // Click upload button
+    const uploadButton = screen.getByRole('button', { name: /Upload/i });
+    await userEvent.click(uploadButton);
+    
+    // Verify createItem was called with correct data
+    await waitFor(() => {
+      expect(createItem).toHaveBeenCalledWith({
+        QuestionId: 123,
+        CreatedDate: '2023-01-01',
+        Question: 'Test question',
+        Type: 'MCQ',
+        Status: 'Active',
+        responseA: 'Option A',
+        responseB: 'Option B',
+        responseC: 'Option C',
+        responseD: 'Option D',
+        rationaleA: 'Rationale A',
+        rationaleB: 'Rationale B',
+        rationaleC: 'Rationale C',
+        rationaleD: 'Rationale D',
+        responseE: undefined,
+        responseF: undefined,
+        rationaleE: undefined,
+        rationaleF: undefined,
+        Key: 'A',
+        Rationale: 'Additional rationale',
+        Topic: '',
+        KnowledgeSkills: '',
+        Tags: ''
+      });
+    });
+    
+    // Verify success message and callback
+    await waitFor(() => {
+      expect(screen.getByText(/Successfully uploaded 1 item/i)).toBeInTheDocument();
+      expect(mockOnUploadComplete).toHaveBeenCalled();
+    });
+  });
+
+  it('handles valid CSV upload with Rationale for backward compatibility', async () => {
+    render(
+      <BulkUpload
+        visible={true}
+        onDismiss={mockOnDismiss}
+        onUploadComplete={mockOnUploadComplete}
+      />
+    );
+
+    // Create a test CSV file with only Rationale field (no Key)
     const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,rationaleA,rationaleB,rationaleC,rationaleD,Rationale
 123,2023-01-01,Test question,MCQ,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,A`;
     
@@ -83,6 +145,7 @@ describe('BulkUpload', () => {
         responseF: undefined,
         rationaleE: undefined,
         rationaleF: undefined,
+        Key: 'A',
         Rationale: 'A',
         Topic: '',
         KnowledgeSkills: '',
@@ -144,8 +207,8 @@ describe('BulkUpload', () => {
     );
     
     // Create a test CSV file
-    const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,rationaleA,rationaleB,rationaleC,rationaleD
-123,2023-01-01,Test question,MCQ,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D`;
+    const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,rationaleA,rationaleB,rationaleC,rationaleD,Key
+123,2023-01-01,Test question,MCQ,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,A`;
     
     const file = new File([csvContent], 'test.csv', { type: 'text/csv' });
     // Add toString method for tests
@@ -185,7 +248,7 @@ describe('BulkUpload', () => {
     expect(mockOnDismiss).toHaveBeenCalled();
   });
 
-  it('handles invalid Rationale format', async () => {
+  it('handles invalid Key format', async () => {
     render(
       <BulkUpload
         visible={true}
@@ -194,8 +257,8 @@ describe('BulkUpload', () => {
       />
     );
 
-    // Create a CSV file with invalid Rationale
-    const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,rationaleA,rationaleB,rationaleC,rationaleD,Rationale
+    // Create a CSV file with invalid Key
+    const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,rationaleA,rationaleB,rationaleC,rationaleD,Key
 123,2023-01-01,Test question,MCQ,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,X`;
     
     const file = new File([csvContent], 'invalid.csv', { type: 'text/csv' });
@@ -215,7 +278,7 @@ describe('BulkUpload', () => {
     // Verify error message
     await waitFor(() => {
       const alert = screen.getByRole('alert');
-      expect(alert).toHaveTextContent('Row 1: Rationale must be a single character (A-F) representing the correct answer');
+      expect(alert).toHaveTextContent('Row 1: Key must be a single character (A-F) representing the correct answer');
     });
   });
 }); 

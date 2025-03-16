@@ -26,6 +26,7 @@ export type Item = {
   Topic?: string;
   KnowledgeSkills?: string;
   Tags?: string;
+  responsesJson?: string;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -57,7 +58,18 @@ export async function getItem(id: number, createdDate: string): Promise<Item | n
 
 export async function createItem(item: Partial<Item>): Promise<Item> {
   try {
-    const response = await client.models.Item.create(item as any);
+    // Ensure all required fields are present
+    const itemWithDefaults = {
+      ...item,
+      // Add default values for required fields that might be missing
+      CreatedBy: item.CreatedBy || 'system',
+      Topic: item.Topic || 'General',
+      KnowledgeSkills: item.KnowledgeSkills || 'General',
+      // Make sure Key is set if not provided
+      Key: item.Key || item.Rationale?.charAt(0) || 'A'
+    };
+    
+    const response = await client.models.Item.create(itemWithDefaults as any);
     return response.data as unknown as Item;
   } catch (error) {
     console.error('Error in createItem:', error);
@@ -67,10 +79,21 @@ export async function createItem(item: Partial<Item>): Promise<Item> {
 
 export async function updateItem(id: number, createdDate: string, item: Partial<Omit<Item, 'QuestionId' | 'CreatedDate'>>): Promise<Item> {
   try {
+    // Ensure all required fields are present
+    const itemWithDefaults = {
+      ...item,
+      // Add default values for required fields that might be missing
+      CreatedBy: item.CreatedBy || 'system',
+      Topic: item.Topic || 'General',
+      KnowledgeSkills: item.KnowledgeSkills || 'General',
+      // Make sure Key is set if not provided
+      Key: item.Key || item.Rationale?.charAt(0) || 'A'
+    };
+    
     const response = await client.models.Item.update({
       QuestionId: id,
       CreatedDate: createdDate,
-      ...item
+      ...itemWithDefaults
     } as any);
     return response.data as unknown as Item;
   } catch (error) {
