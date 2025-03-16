@@ -42,6 +42,12 @@ interface CSVRow {
   CreatedDate: string;
 }
 
+interface BatchResult {
+  success: boolean;
+  rowIndex: number;
+  error?: string;
+}
+
 export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -101,16 +107,56 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
 
   function parseCSV(text: string): CSVRow[] {
     const lines = text.split('\n');
-    const headers = lines[0].split(',').map(h => h.trim());
+    if (lines.length === 0) return [];
+    
+    // Handle potential BOM character at the beginning of the file
+    let firstLine = lines[0];
+    if (firstLine.charCodeAt(0) === 0xFEFF) {
+      firstLine = firstLine.slice(1);
+    }
+    
+    // Parse headers, handling potential quotes
+    const headers = firstLine.split(',').map(h => {
+      const trimmed = h.trim();
+      // Remove quotes if present
+      return trimmed.startsWith('"') && trimmed.endsWith('"') 
+        ? trimmed.slice(1, -1).trim() 
+        : trimmed;
+    });
+    
+    console.log('CSV Headers:', headers);
+    
     const rows: CSVRow[] = [];
 
     for (let i = 1; i < lines.length; i++) {
-      if (!lines[i].trim()) continue;
-      const values = lines[i].split(',').map(v => v.trim());
+      const line = lines[i].trim();
+      if (!line) continue;
+      
+      // Simple CSV parsing - doesn't handle quoted commas properly
+      // For a production app, consider using a CSV parsing library
+      const values = line.split(',').map(v => {
+        const trimmed = v.trim();
+        // Remove quotes if present
+        return trimmed.startsWith('"') && trimmed.endsWith('"') 
+          ? trimmed.slice(1, -1).trim() 
+          : trimmed;
+      });
+      
+      // Skip if we don't have enough values
+      if (values.length < headers.length / 2) {
+        console.warn(`Skipping row ${i} due to insufficient values`);
+        continue;
+      }
+      
       const row = {} as CSVRow;
 
       headers.forEach((header, index) => {
-        row[header as keyof CSVRow] = values[index] || '';
+        if (index < values.length) {
+          row[header as keyof CSVRow] = values[index];
+        } else {
+          // Set empty string for missing values
+          row[header as keyof CSVRow] = '';
+        }
       });
 
       rows.push(row);
@@ -144,6 +190,11 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
       
       const rows = parseCSV(text);
       console.log(`Parsed ${rows.length} rows from CSV`);
+      
+      if (rows.length === 0) {
+        setError('No valid rows found in the CSV file. Please check the file format.');
+        return;
+      }
 
       const validationError = validateCSV(rows);
       if (validationError) {
@@ -154,68 +205,107 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
       console.log('CSV validation passed');
 
       let successCount = 0;
-      for (const row of rows) {
-        try {
-          console.log(`Processing row ${successCount + 1}:`, row);
-          
-          // Determine the correct answer key
-          let correctAnswerKey = row.Key || '';
-          
-          // For backward compatibility, use Rationale if Key is not provided
-          if (!correctAnswerKey && row.Rationale) {
-            const firstChar = row.Rationale.trim().charAt(0).toUpperCase();
-            if (['A', 'B', 'C', 'D', 'E', 'F'].includes(firstChar)) {
-              correctAnswerKey = firstChar;
+      let errors: string[] = [];
+      
+      // Process rows in batches to avoid overwhelming the API
+      const batchSize = 5;
+      for (let i = 0; i < rows.length; i += batchSize) {
+        const batch = rows.slice(i, i + batchSize);
+        const batchPromises = batch.map(async (row, batchIndex) => {
+          const rowIndex = i + batchIndex;
+          try {
+            console.log(`Processing row ${rowIndex + 1}:`, row);
+            
+            // Determine the correct answer key
+            let correctAnswerKey = row.Key || '';
+            
+            // For backward compatibility, use Rationale if Key is not provided
+            if (!correctAnswerKey && row.Rationale) {
+              const firstChar = row.Rationale.trim().charAt(0).toUpperCase();
+              if (['A', 'B', 'C', 'D', 'E', 'F'].includes(firstChar)) {
+                correctAnswerKey = firstChar;
+              }
             }
+            
+            console.log(`Correct answer key determined: ${correctAnswerKey}`);
+            
+            const itemToCreate = {
+              QuestionId: parseInt(row.QuestionId, 10),
+              CreatedDate: row.CreatedDate,
+              Question: row.Question,
+              responseA: row.responseA,
+              responseB: row.responseB,
+              responseC: row.responseC,
+              responseD: row.responseD,
+              responseE: row.responseE || '',
+              responseF: row.responseF || '',
+              rationaleA: row.rationaleA,
+              rationaleB: row.rationaleB,
+              rationaleC: row.rationaleC,
+              rationaleD: row.rationaleD,
+              rationaleE: row.rationaleE || '',
+              rationaleF: row.rationaleF || '',
+              Key: correctAnswerKey,
+              Rationale: row.Rationale || '',
+              Topic: row.Topic || '',
+              KnowledgeSkills: row.KnowledgeSkills || '',
+              Tags: row.Tags || '',
+              Type: row.Type || 'MCQ',
+              Status: row.Status || 'Draft'
+            };
+            
+            console.log('Attempting to create item:', itemToCreate);
+            
+            // Use the updated createItem function
+            const result = await createItem(itemToCreate);
+            console.log('Item created successfully:', result);
+            
+            return { success: true, rowIndex } as BatchResult;
+          } catch (err) {
+            console.error(`Error creating item at row ${rowIndex + 1}:`, err);
+            return { 
+              success: false, 
+              rowIndex, 
+              error: err instanceof Error ? err.message : String(err) 
+            } as BatchResult;
           }
-          
-          console.log(`Correct answer key determined: ${correctAnswerKey}`);
-          
-          const itemToCreate = {
-            QuestionId: parseInt(row.QuestionId, 10),
-            CreatedDate: row.CreatedDate,
-            Question: row.Question,
-            responseA: row.responseA,
-            responseB: row.responseB,
-            responseC: row.responseC,
-            responseD: row.responseD,
-            responseE: row.responseE,
-            responseF: row.responseF,
-            rationaleA: row.rationaleA,
-            rationaleB: row.rationaleB,
-            rationaleC: row.rationaleC,
-            rationaleD: row.rationaleD,
-            rationaleE: row.rationaleE,
-            rationaleF: row.rationaleF,
-            Key: correctAnswerKey,
-            Rationale: row.Rationale || '',
-            Topic: row.Topic || '',
-            KnowledgeSkills: row.KnowledgeSkills || '',
-            Tags: row.Tags || '',
-            Type: row.Type || 'MCQ',
-            Status: row.Status || 'Draft'
-          };
-          
-          console.log('Attempting to create item:', itemToCreate);
-          
-          // Use the updated createItem function
-          const result = await createItem(itemToCreate);
-          console.log('Item created successfully:', result);
-          
-          successCount++;
-          console.log(`Successfully created ${successCount} items so far`);
-        } catch (err) {
-          console.error(`Error creating item:`, err);
-          setError(`Error uploading row ${successCount + 1}: ${err instanceof Error ? err.message : String(err)}`);
-          return;
-        }
+        });
+        
+        // Wait for all items in the batch to be processed
+        const batchResults = await Promise.all(batchPromises);
+        
+        // Count successes and collect errors
+        batchResults.forEach(result => {
+          if (result.success) {
+            successCount++;
+          } else if (result.error) {
+            errors.push(`Row ${result.rowIndex + 1}: ${result.error}`);
+          }
+        });
+        
+        console.log(`Batch processed. Total successful: ${successCount}, Errors: ${errors.length}`);
       }
 
       console.log(`Bulk upload completed. ${successCount} items created successfully.`);
-      setSuccess(true);
-      setUploadedCount(successCount);
+      
+      if (successCount > 0) {
+        setSuccess(true);
+        setUploadedCount(successCount);
+        
+        if (errors.length > 0) {
+          // Some items succeeded, some failed
+          setError(`Successfully uploaded ${successCount} items, but ${errors.length} items failed. First error: ${errors[0]}`);
+        }
+      } else if (errors.length > 0) {
+        // All items failed
+        setError(`Failed to upload any items. First error: ${errors[0]}`);
+      }
+      
       setSelectedFile(null);
-      onUploadComplete();
+      
+      if (successCount > 0) {
+        onUploadComplete();
+      }
     } catch (err) {
       console.error('Unexpected error during bulk upload:', err);
       setError(`Error processing file: ${err instanceof Error ? err.message : String(err)}`);

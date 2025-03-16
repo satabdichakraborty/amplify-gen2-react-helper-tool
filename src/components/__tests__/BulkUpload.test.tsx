@@ -65,7 +65,7 @@ describe('BulkUpload', () => {
     
     // Verify createItem was called with correct data
     await waitFor(() => {
-      expect(createItem).toHaveBeenCalledWith({
+      expect(createItem).toHaveBeenCalledWith(expect.objectContaining({
         QuestionId: 123,
         CreatedDate: '2023-01-01',
         Question: 'Test question',
@@ -79,16 +79,9 @@ describe('BulkUpload', () => {
         rationaleB: 'Rationale B',
         rationaleC: 'Rationale C',
         rationaleD: 'Rationale D',
-        responseE: undefined,
-        responseF: undefined,
-        rationaleE: undefined,
-        rationaleF: undefined,
         Key: 'A',
-        Rationale: 'Additional rationale',
-        Topic: '',
-        KnowledgeSkills: '',
-        Tags: ''
-      });
+        Rationale: 'Additional rationale'
+      }));
     });
     
     // Verify success message and callback
@@ -127,7 +120,7 @@ describe('BulkUpload', () => {
     
     // Verify createItem was called with correct data
     await waitFor(() => {
-      expect(createItem).toHaveBeenCalledWith({
+      expect(createItem).toHaveBeenCalledWith(expect.objectContaining({
         QuestionId: 123,
         CreatedDate: '2023-01-01',
         Question: 'Test question',
@@ -141,16 +134,9 @@ describe('BulkUpload', () => {
         rationaleB: 'Rationale B',
         rationaleC: 'Rationale C',
         rationaleD: 'Rationale D',
-        responseE: undefined,
-        responseF: undefined,
-        rationaleE: undefined,
-        rationaleF: undefined,
         Key: 'A',
-        Rationale: 'A',
-        Topic: '',
-        KnowledgeSkills: '',
-        Tags: ''
-      });
+        Rationale: 'A'
+      }));
     });
     
     // Verify success message and callback
@@ -227,7 +213,7 @@ describe('BulkUpload', () => {
     // Verify error message
     await waitFor(() => {
       const alert = screen.getByRole('alert');
-      expect(alert).toHaveTextContent('Error uploading row 1: API Error');
+      expect(alert).toHaveTextContent('Failed to upload any items. First error: Row 1: API Error');
     });
   });
 

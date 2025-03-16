@@ -60,7 +60,7 @@ export async function createItem(item: Partial<Item>): Promise<Item> {
   try {
     console.log('createItem called with:', JSON.stringify(item, null, 2));
     
-    // Ensure all required fields are present
+    // Ensure all required fields are present and properly formatted
     const itemWithDefaults = {
       ...item,
       // Add default values for required fields that might be missing
@@ -68,8 +68,26 @@ export async function createItem(item: Partial<Item>): Promise<Item> {
       Topic: item.Topic || 'General',
       KnowledgeSkills: item.KnowledgeSkills || 'General',
       // Make sure Key is set if not provided
-      Key: item.Key || item.Rationale?.charAt(0) || 'A'
+      Key: item.Key || item.Rationale?.charAt(0) || 'A',
+      // Ensure empty strings for optional string fields instead of undefined
+      responseE: item.responseE || '',
+      responseF: item.responseF || '',
+      rationaleE: item.rationaleE || '',
+      rationaleF: item.rationaleF || '',
+      Tags: item.Tags || '',
+      Rationale: item.Rationale || '',
+      // Ensure Type and Status have values
+      Type: item.Type || 'MCQ',
+      Status: item.Status || 'Draft'
     };
+    
+    // Remove any undefined or null values that might cause API validation errors
+    Object.keys(itemWithDefaults).forEach(key => {
+      if (itemWithDefaults[key as keyof typeof itemWithDefaults] === undefined || 
+          itemWithDefaults[key as keyof typeof itemWithDefaults] === null) {
+        delete itemWithDefaults[key as keyof typeof itemWithDefaults];
+      }
+    });
     
     console.log('Calling client.models.Item.create with:', JSON.stringify(itemWithDefaults, null, 2));
     
