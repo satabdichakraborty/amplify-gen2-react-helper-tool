@@ -10,18 +10,30 @@ CRUD operations on the Item records.
 const schema = a.schema({
   Item: a
     .model({
-      QuestionId: a.string().required(),  // Partition key
-      CreatedDate: a.string().required(), // Sort key
-      stem: a.string().required(),        // The question text
-      responseA: a.string().required(),   // Option A text
-      rationaleA: a.string().required(),  // Explanation for option A
-      responseB: a.string().required(),   // Option B text
-      rationaleB: a.string().required(),  // Explanation for option B
-      responseC: a.string().required(),   // Option C text
-      rationaleC: a.string().required(),  // Explanation for option C
-      responseD: a.string().required(),   // Option D text
-      rationaleD: a.string().required(),  // Explanation for option D
-      correctResponse: a.string().required(), // The correct answer (A, B, C, or D)
+      QuestionId: a.string().required(),     // Partition key
+      Type: a.string().required(),           // Question type
+      Status: a.string().required(),         // Question status
+      Question: a.string().required(),       // The question text
+      Key: a.string().required(),            // Question key (correct answer)
+      Notes: a.string(),                     // Optional notes
+      Rationale: a.string().required(),      // Main rationale
+      CreatedDate: a.string().required(),    // Sort key
+      CreatedBy: a.string().required(),      // Creator identifier
+      responseA: a.string().required(),      // Option A text
+      responseB: a.string().required(),      // Option B text
+      responseC: a.string().required(),      // Option C text
+      responseD: a.string().required(),      // Option D text
+      responseE: a.string(),                 // Optional Option E text
+      responseF: a.string(),                 // Optional Option F text
+      rationaleA: a.string().required(),     // Explanation for option A
+      rationaleB: a.string().required(),     // Explanation for option B
+      rationaleC: a.string().required(),     // Explanation for option C
+      rationaleD: a.string().required(),     // Explanation for option D
+      rationaleE: a.string(),                // Optional explanation for option E
+      rationaleF: a.string(),                // Optional explanation for option F
+      Topic: a.string().required(),          // Question topic
+      KnowledgeSkills: a.string().required(), // Knowledge and skills
+      Tags: a.string(),                      // Optional tags (comma-separated)
       responsesJson: a.string().required(),   // Additional response data in JSON format
     })
     .authorization((allow) => [allow.publicApiKey()])

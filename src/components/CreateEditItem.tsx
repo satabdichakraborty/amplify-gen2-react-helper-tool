@@ -18,28 +18,28 @@ import { client } from "../main";
 interface FormErrors {
   stem?: string;
   responses?: string[];
-  correctResponse?: string;
+  key?: string;
 }
 
 export default function CreateEditItem() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const [questionId] = useState<string>(
-    id || Math.floor(Math.random() * 1000000).toString()
-  );
-  const [stem, setStem] = useState("");
-  const [generalRationale, setGeneralRationale] = useState("");
-  const [responses, setResponses] = useState([
-    { text: "", rationale: "" },
-    { text: "", rationale: "" },
-    { text: "", rationale: "" },
-    { text: "", rationale: "" }
-  ]);
-  const [correctResponse, setCorrectResponse] = useState("0");
-  const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [existingCreatedDate, setExistingCreatedDate] = useState<string | null>(null);
+
+  // Form state
+  const [stem, setStem] = useState('');
+  const [responses, setResponses] = useState([
+    { text: '', rationale: '' },
+    { text: '', rationale: '' },
+    { text: '', rationale: '' },
+    { text: '', rationale: '' }
+  ]);
+  const [key, setKey] = useState('A');
+  const [generalRationale, setGeneralRationale] = useState('');
+  const [errors, setErrors] = useState<FormErrors>({});
+  const questionId = id || Math.floor(Math.random() * 1000000).toString();
 
   // Load existing item data if in edit mode
   useEffect(() => {
@@ -47,7 +47,6 @@ export default function CreateEditItem() {
       if (id) {
         try {
           setIsLoading(true);
-          // First get the list of items to find the one with matching ID
           const itemsResponse = await client.models.Item.list();
           if (!itemsResponse?.data) {
             throw new Error('Failed to fetch items');
@@ -58,10 +57,8 @@ export default function CreateEditItem() {
             throw new Error('Item not found');
           }
 
-          // Store the existing CreatedDate
           setExistingCreatedDate(targetItem.CreatedDate);
 
-          // Now get the specific item with both QuestionId and CreatedDate
           const response = await client.models.Item.get({
             QuestionId: id,
             CreatedDate: targetItem.CreatedDate
@@ -72,15 +69,15 @@ export default function CreateEditItem() {
           }
 
           const item = response.data;
-          setStem(item.stem);
+          setStem(item.Question);
           setResponses([
             { text: item.responseA || '', rationale: item.rationaleA || '' },
             { text: item.responseB || '', rationale: item.rationaleB || '' },
             { text: item.responseC || '', rationale: item.rationaleC || '' },
             { text: item.responseD || '', rationale: item.rationaleD || '' }
           ]);
-          setCorrectResponse(item.correctResponse || '0');
-          setGeneralRationale(item.responsesJson || '');
+          setKey(item.Key || 'A');
+          setGeneralRationale(item.Rationale || '');
         } catch (error) {
           console.error('Error loading item:', error);
           setErrorMessage('Failed to load item. Please try again.');
@@ -93,22 +90,17 @@ export default function CreateEditItem() {
     loadItem();
   }, [id]);
 
-  const validateForm = (): boolean => {
+  const validateForm = () => {
     const newErrors: FormErrors = {};
 
-    // Validate stem
     if (!stem.trim()) {
-      newErrors.stem = "Stem is required";
+      newErrors.stem = 'Stem is required';
     }
 
-    // Validate responses
     const responseErrors: string[] = [];
     responses.forEach((response, index) => {
       if (!response.text.trim()) {
-        responseErrors[index] = `Response ${index + 1} text is required`;
-      }
-      if (!response.rationale.trim()) {
-        responseErrors[index] = `Response ${index + 1} rationale is required`;
+        responseErrors[index] = `Response ${index + 1} is required`;
       }
     });
 
@@ -116,19 +108,12 @@ export default function CreateEditItem() {
       newErrors.responses = responseErrors;
     }
 
-    // Validate at least one correct response is selected
-    if (!correctResponse) {
-      newErrors.correctResponse = "At least one response must be marked as correct";
+    if (!key || !['A', 'B', 'C', 'D'].includes(key)) {
+      newErrors.key = 'Valid key (A-D) is required';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
-
-  const handleResponseChange = (index: number, field: 'text' | 'rationale', value: string) => {
-    const newResponses = [...responses];
-    newResponses[index] = { ...newResponses[index], [field]: value };
-    setResponses(newResponses);
   };
 
   const handleSave = async () => {
@@ -140,20 +125,46 @@ export default function CreateEditItem() {
       setIsLoading(true);
       setErrorMessage(null);
 
+      const currentDate = new Date().toISOString();
       const itemData = {
         QuestionId: questionId,
-        CreatedDate: id ? existingCreatedDate! : new Date().toISOString(),
-        stem,
+        Type: 'MCQ',
+        Status: 'Active',
+        Question: stem,
+        Key: key,
+        Notes: '',
+        Rationale: generalRationale,
+        CreatedDate: id ? existingCreatedDate! : currentDate,
+        CreatedBy: 'system',
         responseA: responses[0].text,
-        rationaleA: responses[0].rationale,
         responseB: responses[1].text,
-        rationaleB: responses[1].rationale,
         responseC: responses[2].text,
-        rationaleC: responses[2].rationale,
         responseD: responses[3].text,
+        responseE: '',
+        responseF: '',
+        rationaleA: responses[0].rationale,
+        rationaleB: responses[1].rationale,
+        rationaleC: responses[2].rationale,
         rationaleD: responses[3].rationale,
-        correctResponse,
-        responsesJson: generalRationale
+        rationaleE: '',
+        rationaleF: '',
+        Topic: 'General',
+        KnowledgeSkills: 'General',
+        Tags: '',
+        responsesJson: JSON.stringify({
+          responses: {
+            A: responses[0].text,
+            B: responses[1].text,
+            C: responses[2].text,
+            D: responses[3].text
+          },
+          rationales: {
+            A: responses[0].rationale,
+            B: responses[1].rationale,
+            C: responses[2].rationale,
+            D: responses[3].rationale
+          }
+        })
       };
 
       if (id) {
@@ -187,7 +198,7 @@ export default function CreateEditItem() {
               </Header>
               
               {errorMessage && (
-                <Alert type="error" header="Error">
+                <Alert type="error" header="Error" data-testid="error-alert">
                   {errorMessage}
                 </Alert>
               )}
@@ -209,99 +220,76 @@ export default function CreateEditItem() {
                 }
               >
                 <SpaceBetween size="l">
-                  <Container>
-                    <FormField
-                      label="Question ID"
-                      description="A unique identifier for this question"
-                    >
-                      <Input
-                        value={questionId}
-                        disabled
-                      />
-                    </FormField>
-                  </Container>
+                  <FormField
+                    label="Stem"
+                    errorText={errors.stem}
+                  >
+                    <TextArea
+                      value={stem}
+                      onChange={({ detail }) => setStem(detail.value)}
+                    />
+                  </FormField>
 
-                  <Container>
-                    <FormField
-                      label="Stem"
-                      description="The question or scenario presented to the candidate"
-                      errorText={errors.stem}
-                      stretch
-                    >
-                      <TextArea
-                        value={stem}
-                        onChange={({ detail }) => setStem(detail.value)}
-                        rows={3}
-                      />
-                    </FormField>
-                  </Container>
+                  <ColumnLayout columns={2}>
+                    {responses.map((response, index) => (
+                      <div key={index}>
+                        <SpaceBetween size="s">
+                          <FormField
+                            label="Text"
+                            errorText={errors.responses?.[index]}
+                          >
+                            <Input
+                              value={response.text}
+                              onChange={({ detail }) => {
+                                const newResponses = [...responses];
+                                newResponses[index] = {
+                                  ...response,
+                                  text: detail.value
+                                };
+                                setResponses(newResponses);
+                              }}
+                            />
+                          </FormField>
+                          <FormField
+                            label="Rationale"
+                          >
+                            <Input
+                              value={response.rationale}
+                              onChange={({ detail }) => {
+                                const newResponses = [...responses];
+                                newResponses[index] = {
+                                  ...response,
+                                  rationale: detail.value
+                                };
+                                setResponses(newResponses);
+                              }}
+                            />
+                          </FormField>
+                          <FormField
+                            label="Is Correct Answer"
+                          >
+                            <Toggle
+                              checked={key === String.fromCharCode(65 + index)}
+                              onChange={({ detail }) => {
+                                if (detail.checked) {
+                                  setKey(String.fromCharCode(65 + index));
+                                }
+                              }}
+                            />
+                          </FormField>
+                        </SpaceBetween>
+                      </div>
+                    ))}
+                  </ColumnLayout>
 
-                  {responses.map((response, index) => (
-                    <Container
-                      key={index}
-                      header={
-                        <Header 
-                          variant="h2"
-                          actions={
-                            <SpaceBetween direction="horizontal" size="xs">
-                              <FormField label="Correct">
-                                <Toggle
-                                  checked={correctResponse === index.toString()}
-                                  onChange={({ detail }) => {
-                                    if (detail.checked) {
-                                      setCorrectResponse(index.toString());
-                                    }
-                                  }}
-                                />
-                              </FormField>
-                            </SpaceBetween>
-                          }
-                        >
-                          Response {index + 1}
-                        </Header>
-                      }
-                    >
-                      <ColumnLayout columns={2} variant="text-grid">
-                        <FormField 
-                          label="Text"
-                          errorText={errors.responses?.[index]}
-                          stretch
-                        >
-                          <TextArea
-                            value={response.text}
-                            onChange={({ detail }) => handleResponseChange(index, 'text', detail.value)}
-                            rows={4}
-                          />
-                        </FormField>
-
-                        <FormField 
-                          label="Rationale"
-                          errorText={errors.responses?.[index]}
-                          stretch
-                        >
-                          <TextArea
-                            value={response.rationale}
-                            onChange={({ detail }) => handleResponseChange(index, 'rationale', detail.value)}
-                            rows={4}
-                          />
-                        </FormField>
-                      </ColumnLayout>
-                    </Container>
-                  ))}
-
-                  <Container>
-                    <FormField
-                      label="General Item Rationale"
-                      description="Provide a general rationale for the entire item"
-                      stretch
-                    >
-                      <TextArea
-                        value={generalRationale}
-                        onChange={({ detail }) => setGeneralRationale(detail.value)}
-                        rows={4}
-                      />
-                    </FormField>
-                  </Container>
+                  <FormField
+                    label="General Rationale"
+                  >
+                    <TextArea
+                      value={generalRationale}
+                      onChange={({ detail }) => setGeneralRationale(detail.value)}
+                    />
+                  </FormField>
                 </SpaceBetween>
               </Form>
             </SpaceBetween>

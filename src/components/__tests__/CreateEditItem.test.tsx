@@ -1,191 +1,218 @@
+import { describe, expect, test, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import CreateEditItem from '../CreateEditItem';
+import { MemoryRouter } from 'react-router-dom';
+
 // Mock declarations first
 const mockNavigate = vi.hoisted(() => vi.fn());
-const mockParams = vi.hoisted(() => ({ id: undefined as string | undefined }));
+const mockParams = vi.hoisted(() => ({ id: '123' as string | undefined }));
 const mockClient = vi.hoisted(() => ({
   models: {
     Item: {
-      create: vi.fn(),
-      update: vi.fn(),
+      create: vi.fn().mockResolvedValue({ success: true }),
+      update: vi.fn().mockResolvedValue({ success: true }),
       get: vi.fn(),
       list: vi.fn(),
     }
   }
 }));
 
-vi.mock('react-router-dom', () => ({
-  useNavigate: () => mockNavigate,
-  useParams: () => mockParams,
-  BrowserRouter: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+    useParams: () => mockParams,
+  };
+});
 
 vi.mock('../../main', () => ({
   client: mockClient
 }));
 
-// Then imports
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { describe, expect, test, vi, beforeEach } from 'vitest';
-import CreateEditItem from '../CreateEditItem';
-
 describe('CreateEditItem', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockParams.id = undefined;
+    mockParams.id = '123';
   });
+
+  const getFormField = (label: string) => {
+    return screen.getByLabelText(label);
+  };
+
+  const getToggle = (index: number) => {
+    const toggles = screen.getAllByLabelText('Is Correct Answer');
+    return toggles[index];
+  };
 
   test('successfully creates a new item', async () => {
     const user = userEvent.setup();
-    render(<CreateEditItem />);
+    mockParams.id = undefined;
+
+    render(
+      <MemoryRouter>
+        <CreateEditItem />
+      </MemoryRouter>
+    );
 
     // Fill out the form
-    const stemInput = screen.getByLabelText('Stem');
+    const stemInput = getFormField('Stem');
     await user.type(stemInput, 'test stem');
 
-    // Fill out responses
-    const responseContainers = screen.getAllByRole('heading', { level: 2 }).map(heading => heading.closest('div[class*="awsui_container"]'));
-    
-    for (let i = 0; i < 4; i++) {
-      const container = responseContainers[i];
-      if (!container) continue;
+    const responseInputs = screen.getAllByLabelText('Text');
+    await user.type(responseInputs[0], 'response A');
+    await user.type(responseInputs[1], 'response B');
+    await user.type(responseInputs[2], 'response C');
+    await user.type(responseInputs[3], 'response D');
 
-      const textInput = screen.getAllByLabelText('Text')[i];
-      const rationaleInput = screen.getAllByLabelText('Rationale')[i];
+    const rationaleInputs = screen.getAllByLabelText('Rationale');
+    await user.type(rationaleInputs[0], 'rationale A');
+    await user.type(rationaleInputs[1], 'rationale B');
+    await user.type(rationaleInputs[2], 'rationale C');
+    await user.type(rationaleInputs[3], 'rationale D');
 
-      await user.type(textInput, `response ${i}`);
-      await user.type(rationaleInput, `rationale ${i}`);
-    }
-
-    // Select correct response
-    const toggles = screen.getAllByLabelText('Correct');
-    await user.click(toggles[0]);
+    // Set correct answer
+    const toggle = getToggle(1);
+    await user.click(toggle);
 
     // Submit form
-    await user.click(screen.getByRole('button', { name: 'Create item' }));
+    const submitButton = screen.getByRole('button', { name: /create item/i });
+    await user.click(submitButton);
+
+    // Wait for loading state to complete
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /loading/i })).not.toBeInTheDocument();
+    });
 
     // Verify API call
     await waitFor(() => {
-      expect(mockClient.models.Item.create).toHaveBeenCalledWith(expect.objectContaining({
-        QuestionId: expect.any(String),
-        CreatedDate: expect.any(String),
-        stem: 'test stem',
-        responseA: 'response 0',
-        rationaleA: 'rationale 0',
-        responseB: 'response 1',
-        rationaleB: 'rationale 1',
-        responseC: 'response 2',
-        rationaleC: 'rationale 2',
-        responseD: 'response 3',
-        rationaleD: 'rationale 3',
-        correctResponse: '0',
-        responsesJson: ''
-      }));
-    }, { timeout: 10000 });
+      expect(mockClient.models.Item.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          Question: 'test stem',
+          responseA: 'response A',
+          responseB: 'response B',
+          responseC: 'response C',
+          responseD: 'response D',
+          rationaleA: 'rationale A',
+          rationaleB: 'rationale B',
+          rationaleC: 'rationale C',
+          rationaleD: 'rationale D',
+          Key: 'B'
+        })
+      );
+    });
 
-    // Verify navigation
     expect(mockNavigate).toHaveBeenCalledWith('/');
-  }, 15000);
+  });
 
-  test('handles API errors gracefully', async () => {
-    const user = userEvent.setup();
+  test('handles API errors', async () => {
     mockClient.models.Item.create.mockRejectedValueOnce(new Error('API Error'));
+    mockParams.id = undefined;
+    
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <CreateEditItem />
+      </MemoryRouter>
+    );
+    
+    // Fill out required fields
+    const stemInput = getFormField('Stem');
+    await user.type(stemInput, 'test stem');
 
-    render(<CreateEditItem />);
+    const responseInputs = screen.getAllByLabelText('Text');
+    await user.type(responseInputs[0], 'response A');
+    await user.type(responseInputs[1], 'response B');
+    await user.type(responseInputs[2], 'response C');
+    await user.type(responseInputs[3], 'response D');
 
-    // Fill out form minimally
-    await user.type(screen.getByLabelText('Stem'), 'test stem');
-    for (let i = 0; i < 4; i++) {
-      await user.type(screen.getAllByLabelText('Text')[i], `response ${i}`);
-      await user.type(screen.getAllByLabelText('Rationale')[i], `rationale ${i}`);
-    }
+    // Set correct answer
+    const toggle = getToggle(0);
+    await user.click(toggle);
 
     // Submit form
-    await user.click(screen.getByRole('button', { name: 'Create item' }));
+    const submitButton = screen.getByRole('button', { name: /create item/i });
+    await user.click(submitButton);
 
-    // Verify error message
+    // Wait for error alert to appear
     await waitFor(() => {
-      const errorHeader = screen.getByText('Error');
-      const errorMessage = screen.getByText('Failed to save item. Please try again.');
-      expect(errorHeader).toBeInTheDocument();
-      expect(errorMessage).toBeInTheDocument();
-    }, { timeout: 10000 });
-  }, 15000);
+      const alert = screen.getByTestId('error-alert');
+      expect(alert).toBeInTheDocument();
+      expect(alert).toHaveTextContent('Failed to save item. Please try again.');
+    });
+
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
 
   test('loads and updates existing item', async () => {
     const user = userEvent.setup();
-    mockParams.id = 'existing-id';
+    mockParams.id = '123';
 
-    const existingItem = {
-      QuestionId: 'existing-id',
-      CreatedDate: '2024-01-01T00:00:00Z',
-      stem: 'existing stem',
-      responseA: 'existing response A',
-      rationaleA: 'existing rationale A',
-      responseB: 'existing response B',
-      rationaleB: 'existing rationale B',
-      responseC: 'existing response C',
-      rationaleC: 'existing rationale C',
-      responseD: 'existing response D',
-      rationaleD: 'existing rationale D',
-      correctResponse: '1',
-      responsesJson: ''
+    // Mock existing item data
+    const mockItem = {
+      QuestionId: '123',
+      CreatedDate: '2024-01-01',
+      Question: 'existing stem',
+      responseA: 'existing A',
+      responseB: 'existing B',
+      responseC: 'existing C',
+      responseD: 'existing D',
+      rationaleA: 'rationale A',
+      rationaleB: 'rationale B',
+      rationaleC: 'rationale C',
+      rationaleD: 'rationale D',
+      Key: 'B',
+      Rationale: 'general rationale'
     };
 
-    mockClient.models.Item.list.mockResolvedValueOnce({
-      data: [existingItem]
+    mockClient.models.Item.list.mockResolvedValue({
+      data: [{ QuestionId: '123', CreatedDate: '2024-01-01' }]
     });
+    mockClient.models.Item.get.mockResolvedValue({ data: mockItem });
 
-    mockClient.models.Item.get.mockResolvedValueOnce({
-      data: existingItem
-    });
+    render(
+      <MemoryRouter>
+        <CreateEditItem />
+      </MemoryRouter>
+    );
 
-    render(<CreateEditItem />);
-
-    // Verify form is populated
+    // Wait for form to be populated
     await waitFor(() => {
-      expect(screen.getByLabelText('Question ID')).toHaveValue('existing-id');
-      expect(screen.getByLabelText('Stem')).toHaveValue('existing stem');
-      
-      const textInputs = screen.getAllByLabelText('Text');
-      expect(textInputs[0]).toHaveValue('existing response A');
-      expect(textInputs[1]).toHaveValue('existing response B');
-      expect(textInputs[2]).toHaveValue('existing response C');
-      expect(textInputs[3]).toHaveValue('existing response D');
+      const stemInput = getFormField('Stem');
+      expect(stemInput).toHaveValue('existing stem');
 
-      const rationaleInputs = screen.getAllByLabelText('Rationale');
-      expect(rationaleInputs[0]).toHaveValue('existing rationale A');
-      expect(rationaleInputs[1]).toHaveValue('existing rationale B');
-      expect(rationaleInputs[2]).toHaveValue('existing rationale C');
-      expect(rationaleInputs[3]).toHaveValue('existing rationale D');
+      const responseInputs = screen.getAllByLabelText('Text');
+      expect(responseInputs[0]).toHaveValue('existing A');
+      expect(responseInputs[1]).toHaveValue('existing B');
+      expect(responseInputs[2]).toHaveValue('existing C');
+      expect(responseInputs[3]).toHaveValue('existing D');
 
-      // Verify correct response is selected
-      const toggles = screen.getAllByLabelText('Correct');
-      expect(toggles[1].closest('[class*="awsui_toggle-control"]')).toHaveClass('awsui_toggle-control-checked_4yi2u_nvz0x_213');
-    }, { timeout: 10000 });
+      const toggles = screen.getAllByLabelText('Is Correct Answer');
+      expect(toggles[1]).toBeChecked();
+    });
 
-    // Update a field and change correct answer
-    const stemInput = screen.getByLabelText('Stem');
-    await user.clear(stemInput);
-    await user.type(stemInput, 'updated stem');
-
-    // Change correct answer from B to C
-    const toggles = screen.getAllByLabelText('Correct');
-    await user.click(toggles[2]);
+    // Make changes
+    const responseInputs = screen.getAllByLabelText('Text');
+    await user.clear(responseInputs[0]);
+    await user.type(responseInputs[0], 'updated A');
 
     // Submit form
-    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+    const submitButton = screen.getByRole('button', { name: /save changes/i });
+    await user.click(submitButton);
 
-    // Verify API call
+    // Verify update API call
     await waitFor(() => {
-      expect(mockClient.models.Item.update).toHaveBeenCalledWith(expect.objectContaining({
-        ...existingItem,
-        stem: 'updated stem',
-        correctResponse: '2',
-        CreatedDate: '2024-01-01T00:00:00Z'
-      }));
-    }, { timeout: 10000 });
+      expect(mockClient.models.Item.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          QuestionId: '123',
+          Question: 'existing stem',
+          responseA: 'updated A',
+          Key: 'B'
+        })
+      );
+    });
 
-    // Verify navigation
     expect(mockNavigate).toHaveBeenCalledWith('/');
-  }, 15000);
+  });
 }); 

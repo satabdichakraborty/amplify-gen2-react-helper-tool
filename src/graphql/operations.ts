@@ -13,7 +13,6 @@ export type Item = {
   rationaleC: string;
   responseD: string;
   rationaleD: string;
-  correctResponse: string;
   responsesJson: string;
   createdAt?: string;
   updatedAt?: string;
