@@ -3,9 +3,24 @@ import ReactDOM from "react-dom/client";
 import { Amplify } from "aws-amplify";
 import { generateClient } from "@aws-amplify/api";
 import { type Schema } from '../amplify/data/resource';
-import outputs from "../amplify_outputs.json";
 import App from "./App";
 import "./index.css";
+
+// Define the type for our outputs
+interface AmplifyOutputs {
+  graphqlEndpoint: string;
+  region: string;
+  authMode: string;
+  apiKey: string;
+}
+
+// Create outputs object from environment variables
+const outputs: AmplifyOutputs = {
+  graphqlEndpoint: import.meta.env.VITE_GRAPHQL_ENDPOINT || '',
+  region: import.meta.env.VITE_AWS_REGION || 'us-east-1',
+  authMode: 'apiKey',
+  apiKey: import.meta.env.VITE_API_KEY || ''
+};
 
 // Configure Amplify using the outputs directly
 try {
