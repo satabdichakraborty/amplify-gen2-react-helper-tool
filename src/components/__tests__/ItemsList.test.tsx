@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { vi } from 'vitest';
 import { ItemsList } from '../ItemsList';
-import { listItems, deleteItem, type Item } from '../../graphql/operations';
+import { listItems, deleteItem } from '../../graphql/operations';
 
 // Mock the router hooks
 vi.mock('react-router-dom', async () => {
@@ -21,11 +21,11 @@ vi.mock('../../graphql/operations', () => ({
 
 describe('ItemsList', () => {
   const mockNavigate = vi.fn();
-  const mockItems: Item[] = [
+  const mockItems = [
     {
-      QuestionId: '1',
-      CreatedDate: '2024-01-01T00:00:00Z',
-      stem: 'Test Question 1',
+      QuestionId: 123,
+      CreatedDate: '2023-01-01',
+      Question: 'Test question 1',
       responseA: 'A1',
       rationaleA: 'RA1',
       responseB: 'B1',
@@ -34,15 +34,14 @@ describe('ItemsList', () => {
       rationaleC: 'RC1',
       responseD: 'D1',
       rationaleD: 'RD1',
-      correctResponse: '0',
       responsesJson: '',
-      createdAt: '2024-01-01T00:00:00Z',
-      updatedAt: '2024-01-01T00:00:00Z'
-    } as Item,
+      Type: 'MCQ',
+      Status: 'Active'
+    },
     {
-      QuestionId: '2',
-      CreatedDate: '2024-01-02T00:00:00Z',
-      stem: 'Test Question 2',
+      QuestionId: 456,
+      CreatedDate: '2023-01-02',
+      Question: 'Test question 2',
       responseA: 'A2',
       rationaleA: 'RA2',
       responseB: 'B2',
@@ -51,11 +50,10 @@ describe('ItemsList', () => {
       rationaleC: 'RC2',
       responseD: 'D2',
       rationaleD: 'RD2',
-      correctResponse: '1',
       responsesJson: '',
-      createdAt: '2024-01-02T00:00:00Z',
-      updatedAt: '2024-01-02T00:00:00Z'
-    } as Item
+      Type: 'MCQ',
+      Status: 'Draft'
+    }
   ];
 
   beforeEach(() => {
@@ -73,10 +71,10 @@ describe('ItemsList', () => {
 
     // Wait for items to load
     await waitFor(() => {
-      expect(screen.getByText('Test Question 1')).toBeInTheDocument();
+      expect(screen.getByText('Test question 1')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Test Question 2')).toBeInTheDocument();
+    expect(screen.getByText('Test question 2')).toBeInTheDocument();
     
     // Get all buttons in the table rows
     const tableRows = screen.getAllByRole('row');
@@ -96,7 +94,7 @@ describe('ItemsList', () => {
 
     // Wait for items to load
     await waitFor(() => {
-      expect(screen.getByText('Test Question 1')).toBeInTheDocument();
+      expect(screen.getByText('Test question 1')).toBeInTheDocument();
     });
 
     // Click the first edit button in the table
@@ -104,7 +102,7 @@ describe('ItemsList', () => {
     const editButton = within(tableRows[1]).getByRole('button', { name: 'Edit' });
     fireEvent.click(editButton);
 
-    expect(mockNavigate).toHaveBeenCalledWith('/items/1/edit');
+    expect(mockNavigate).toHaveBeenCalledWith('/items/123/edit');
   });
 
   it('shows delete confirmation modal when delete button is clicked', async () => {
@@ -116,7 +114,7 @@ describe('ItemsList', () => {
 
     // Wait for items to load
     await waitFor(() => {
-      expect(screen.getByText('Test Question 1')).toBeInTheDocument();
+      expect(screen.getByText('Test question 1')).toBeInTheDocument();
     });
 
     // Click the first delete button in the table
@@ -137,7 +135,7 @@ describe('ItemsList', () => {
 
     // Wait for items to load
     await waitFor(() => {
-      expect(screen.getByText('Test Question 1')).toBeInTheDocument();
+      expect(screen.getByText('Test question 1')).toBeInTheDocument();
     });
 
     // Click the first delete button in the table
@@ -146,13 +144,13 @@ describe('ItemsList', () => {
     fireEvent.click(deleteButton);
 
     // Click the confirm delete button in modal
-    const modal = screen.getByRole('dialog');
+    const modal = screen.getByTestId('delete-modal');
     const confirmDeleteButton = within(modal).getByRole('button', { name: 'Delete' });
     fireEvent.click(confirmDeleteButton);
 
     // Verify deleteItem was called with correct parameters
     await waitFor(() => {
-      expect(deleteItem).toHaveBeenCalledWith('1', '2024-01-01T00:00:00Z');
+      expect(deleteItem).toHaveBeenCalledWith(123, '2023-01-01');
     });
 
     // Verify listItems was called again to refresh the list
@@ -170,7 +168,7 @@ describe('ItemsList', () => {
 
     // Wait for items to load
     await waitFor(() => {
-      expect(screen.getByText('Test Question 1')).toBeInTheDocument();
+      expect(screen.getByText('Test question 1')).toBeInTheDocument();
     });
 
     // Click the first delete button in the table
@@ -179,7 +177,7 @@ describe('ItemsList', () => {
     fireEvent.click(deleteButton);
 
     // Click the confirm delete button in modal
-    const modal = screen.getByRole('dialog');
+    const modal = screen.getByTestId('delete-modal');
     const confirmDeleteButton = within(modal).getByRole('button', { name: 'Delete' });
     fireEvent.click(confirmDeleteButton);
 
@@ -198,7 +196,7 @@ describe('ItemsList', () => {
 
     // Wait for items to load
     await waitFor(() => {
-      expect(screen.getByText('Test Question 1')).toBeInTheDocument();
+      expect(screen.getByText('Test question 1')).toBeInTheDocument();
     });
 
     // Click the first delete button in the table
@@ -207,7 +205,7 @@ describe('ItemsList', () => {
     fireEvent.click(deleteButton);
 
     // Click the cancel button in modal
-    const modal = screen.getByRole('dialog');
+    const modal = screen.getByTestId('delete-modal');
     const cancelButton = within(modal).getByRole('button', { name: 'Cancel' });
     fireEvent.click(cancelButton);
 
@@ -226,7 +224,7 @@ describe('ItemsList', () => {
 
     // Wait for items to load
     await waitFor(() => {
-      expect(screen.getByText('Test Question 1')).toBeInTheDocument();
+      expect(screen.getByText('Test question 1')).toBeInTheDocument();
     });
 
     // Verify there is exactly one Add new item button

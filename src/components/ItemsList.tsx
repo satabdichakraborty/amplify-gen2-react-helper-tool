@@ -14,6 +14,7 @@ import {
 } from '@cloudscape-design/components';
 import { applyMode, Mode } from "@cloudscape-design/global-styles";
 import { listItems, deleteItem, type Item } from '../graphql/operations';
+import { BulkUpload } from './BulkUpload';
 
 // Apply light mode to match AWS Console
 applyMode(Mode.Light);
@@ -29,6 +30,7 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
   const navigate = useNavigate();
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
+  const [uploadModalVisible, setUploadModalVisible] = useState(false);
 
   async function loadItems() {
     try {
@@ -81,6 +83,51 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
 
   const filteredItems = items;
 
+  type ColumnDefinition = {
+    id: string;
+    header: string;
+    cell: (item: Item) => React.ReactNode;
+    sortingField?: string;
+  };
+
+  const COLUMN_DEFINITIONS: ColumnDefinition[] = [
+    {
+      id: 'id',
+      header: 'ID',
+      cell: (item: Item) => item.QuestionId,
+      sortingField: 'QuestionId'
+    },
+    {
+      id: 'question',
+      header: 'Question',
+      cell: (item: Item) => item.Question,
+      sortingField: 'Question'
+    },
+    {
+      id: 'createdDate',
+      header: 'Created Date',
+      cell: (item: Item) => new Date(item.CreatedDate).toLocaleString(),
+      sortingField: 'CreatedDate'
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      cell: (item: Item) => (
+        <SpaceBetween direction="horizontal" size="xs">
+          <Button onClick={() => navigate(`/items/${item.QuestionId}/edit`)}>
+            Edit
+          </Button>
+          <Button onClick={() => {
+            setItemToDelete(item);
+            setDeleteModalVisible(true);
+          }}>
+            Delete
+          </Button>
+        </SpaceBetween>
+      )
+    }
+  ];
+
   return (
     <Container>
       <SpaceBetween size="l">
@@ -88,7 +135,12 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
           variant="h1"
           actions={
             <SpaceBetween direction="horizontal" size="xs">
-              <Button onClick={() => navigate('/items/new')}>Add new item</Button>
+              <Button variant="normal" onClick={() => setUploadModalVisible(true)}>
+                Upload Items
+              </Button>
+              <Button variant="primary" onClick={() => navigate('/items/new')}>
+                Add new item
+              </Button>
             </SpaceBetween>
           }
         >
@@ -99,42 +151,7 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
           loading={loading}
           loadingText="Loading items"
           items={filteredItems}
-          columnDefinitions={[
-            {
-              id: 'id',
-              header: 'Question ID',
-              cell: (item: Item) => item.QuestionId,
-              sortingField: 'QuestionId'
-            },
-            {
-              id: 'createdDate',
-              header: 'Created Date',
-              cell: (item: Item) => new Date(item.CreatedDate).toLocaleString(),
-              sortingField: 'CreatedDate'
-            },
-            {
-              id: 'question',
-              header: 'Question',
-              cell: (item: Item) => item.stem
-            },
-            {
-              id: 'actions',
-              header: 'Actions',
-              cell: (item: Item) => (
-                <SpaceBetween direction="horizontal" size="xs">
-                  <Button onClick={() => navigate(`/items/${item.QuestionId}/edit`)}>
-                    Edit
-                  </Button>
-                  <Button onClick={() => {
-                    setItemToDelete(item);
-                    setDeleteModalVisible(true);
-                  }}>
-                    Delete
-                  </Button>
-                </SpaceBetween>
-              )
-            }
-          ]}
+          columnDefinitions={COLUMN_DEFINITIONS}
           empty={
             <Box textAlign="center" color="inherit">
               <TextContent>
@@ -160,6 +177,7 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
           setItemToDelete(null);
         }}
         header="Delete Item"
+        data-testid="delete-modal"
         footer={
           <SpaceBetween direction="horizontal" size="xs">
             <Button variant="link" onClick={() => {
@@ -168,7 +186,7 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
             }}>
               Cancel
             </Button>
-            <Button onClick={() => itemToDelete && handleDelete(itemToDelete)}>
+            <Button variant="primary" onClick={() => itemToDelete && handleDelete(itemToDelete)}>
               Delete
             </Button>
           </SpaceBetween>
@@ -176,6 +194,12 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
       >
         Are you sure you want to delete this item? This action cannot be undone.
       </Modal>
+
+      <BulkUpload
+        visible={uploadModalVisible}
+        onDismiss={() => setUploadModalVisible(false)}
+        onUploadComplete={loadItems}
+      />
     </Container>
   );
 } 

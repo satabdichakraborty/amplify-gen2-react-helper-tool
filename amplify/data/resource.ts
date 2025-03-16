@@ -10,9 +10,9 @@ CRUD operations on the Item records.
 const schema = a.schema({
   Item: a
     .model({
-      QuestionId: a.string().required(),  // Partition key
+      QuestionId: a.integer().required(),  // Partition key - changed to integer
       CreatedDate: a.string().required(), // Sort key
-      stem: a.string().required(),        // The question text
+      Question: a.string().required(),    // The question text (renamed from stem)
       responseA: a.string().required(),   // Option A text
       rationaleA: a.string().required(),  // Explanation for option A
       responseB: a.string().required(),   // Option B text
@@ -21,8 +21,14 @@ const schema = a.schema({
       rationaleC: a.string().required(),  // Explanation for option C
       responseD: a.string().required(),   // Option D text
       rationaleD: a.string().required(),  // Explanation for option D
-      correctResponse: a.string().required(), // The correct answer (A, B, C, or D)
-      responsesJson: a.string().required(),   // Additional response data in JSON format
+      rationaleE: a.string(),
+      rationaleF: a.string(),
+      responsesJson: a.string(),
+      Topic: a.string(),
+      KnowledgeSkills: a.string(),
+      Tags: a.string(),
+      createdAt: a.datetime(),
+      updatedAt: a.datetime()
     })
     .authorization((allow) => [allow.publicApiKey()])
     .identifier(['QuestionId', 'CreatedDate']),
@@ -60,15 +66,15 @@ const { data: items } = await client.models.Item.list()
 
 // Get a specific item
 const { data: item } = await client.models.Item.get({
-  QuestionId: "123",
+  QuestionId: 123,
   CreatedDate: "2024-03-14"
 })
 
 // Create a new item
 const newItem = await client.models.Item.create({
-  QuestionId: "123",
+  QuestionId: 123,
   CreatedDate: new Date().toISOString(),
-  stem: "What is...",
+  Question: "What is...",
   responseA: "Option A",
   rationaleA: "Because...",
   // ... other required fields
@@ -76,7 +82,7 @@ const newItem = await client.models.Item.create({
 
 // Delete an item
 await client.models.Item.delete({
-  QuestionId: "123",
+  QuestionId: 123,
   CreatedDate: "2024-03-14"
 })
 =========================================================================*/

@@ -2,9 +2,15 @@ import { client } from '../main';
 
 // Define the Item type using the Schema type and the client's return type
 export type Item = {
-  QuestionId: string;
+  QuestionId: number;
   CreatedDate: string;
-  stem: string;
+  Question: string;
+  Type: string;
+  Status: string;
+  Key?: string;
+  Notes?: string;
+  Rationale?: string;
+  CreatedBy?: string;
   responseA: string;
   rationaleA: string;
   responseB: string;
@@ -13,8 +19,14 @@ export type Item = {
   rationaleC: string;
   responseD: string;
   rationaleD: string;
-  correctResponse: string;
+  responseE?: string;
+  rationaleE?: string;
+  responseF?: string;
+  rationaleF?: string;
   responsesJson: string;
+  Topic?: string;
+  KnowledgeSkills?: string;
+  Tags?: string;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -31,7 +43,7 @@ export async function listItems(): Promise<Item[]> {
   }
 }
 
-export async function getItem(id: string, createdDate: string): Promise<Item | null> {
+export async function getItem(id: number, createdDate: string): Promise<Item | null> {
   try {
     const response = await client.models.Item.get({ 
       QuestionId: id,
@@ -54,7 +66,7 @@ export async function createItem(item: Omit<Item, 'QuestionId' | 'CreatedDate'>)
   }
 }
 
-export async function updateItem(id: string, createdDate: string, item: Partial<Omit<Item, 'QuestionId' | 'CreatedDate'>>): Promise<Item> {
+export async function updateItem(id: number, createdDate: string, item: Partial<Omit<Item, 'QuestionId' | 'CreatedDate'>>): Promise<Item> {
   try {
     const response = await client.models.Item.update({
       QuestionId: id,
@@ -68,7 +80,7 @@ export async function updateItem(id: string, createdDate: string, item: Partial<
   }
 }
 
-export async function deleteItem(questionId: string, createdDate: string): Promise<void> {
+export async function deleteItem(questionId: number, createdDate: string): Promise<void> {
   try {
     await client.models.Item.delete({
       QuestionId: questionId,

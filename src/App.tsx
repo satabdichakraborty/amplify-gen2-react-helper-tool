@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ItemsList } from './components/ItemsList';
-import CreateEditItem from './components/CreateEditItem';
+import { CreateEditItem } from './components/CreateEditItem';
 import './App.css';
 
 function App() {

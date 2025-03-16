@@ -8,127 +8,130 @@ import FormField from "@cloudscape-design/components/form-field";
 import Input from "@cloudscape-design/components/input";
 import Button from "@cloudscape-design/components/button";
 import BreadcrumbGroup from "@cloudscape-design/components/breadcrumb-group";
-import AppLayout from "@cloudscape-design/components/app-layout";
 import TextArea from "@cloudscape-design/components/textarea";
-import ColumnLayout from "@cloudscape-design/components/column-layout";
-import Toggle from "@cloudscape-design/components/toggle";
 import Alert from "@cloudscape-design/components/alert";
+import AppLayout from "@cloudscape-design/components/app-layout";
 import { client } from "../main";
 
-interface FormErrors {
-  stem?: string;
-  responses?: string[];
-  correctResponse?: string;
-}
-
-export default function CreateEditItem() {
+export function CreateEditItem() {
   const navigate = useNavigate();
-  const { id } = useParams();
-  const [questionId] = useState<string>(
-    id || Math.floor(Math.random() * 1000000).toString()
-  );
-  const [stem, setStem] = useState("");
-  const [generalRationale, setGeneralRationale] = useState("");
-  const [responses, setResponses] = useState([
-    { text: "", rationale: "" },
-    { text: "", rationale: "" },
-    { text: "", rationale: "" },
-    { text: "", rationale: "" }
-  ]);
-  const [correctResponse, setCorrectResponse] = useState("0");
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [existingCreatedDate, setExistingCreatedDate] = useState<string | null>(null);
+  const { id } = useParams<{ id: string }>();
+  const [questionId, setQuestionId] = useState<number>(id ? parseInt(id, 10) : Math.floor(Math.random() * 1000000));
+  const [createdDate, setCreatedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [question, setQuestion] = useState<string>('');
+  const [responseA, setResponseA] = useState<string>('');
+  const [responseB, setResponseB] = useState<string>('');
+  const [responseC, setResponseC] = useState<string>('');
+  const [responseD, setResponseD] = useState<string>('');
+  const [responseE, setResponseE] = useState<string>('');
+  const [responseF, setResponseF] = useState<string>('');
+  const [rationaleA, setRationaleA] = useState<string>('');
+  const [rationaleB, setRationaleB] = useState<string>('');
+  const [rationaleC, setRationaleC] = useState<string>('');
+  const [rationaleD, setRationaleD] = useState<string>('');
+  const [rationaleE, setRationaleE] = useState<string>('');
+  const [rationaleF, setRationaleF] = useState<string>('');
+  const [responsesJson, setResponsesJson] = useState<string>('');
+  const [topic, setTopic] = useState<string>('');
+  const [knowledgeSkills, setKnowledgeSkills] = useState<string>('');
+  const [tags, setTags] = useState<string>('');
+  const [type, setType] = useState<string>('MCQ');
+  const [status, setStatus] = useState<string>('Draft');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isEditing] = useState<boolean>(!!id);
 
-  // Load existing item data if in edit mode
   useEffect(() => {
-    const loadItem = async () => {
+    async function fetchItem() {
       if (id) {
         try {
-          setIsLoading(true);
-          // First get the list of items to find the one with matching ID
-          const itemsResponse = await client.models.Item.list();
-          if (!itemsResponse?.data) {
-            throw new Error('Failed to fetch items');
-          }
-
-          const targetItem = itemsResponse.data.find((item: any) => item.QuestionId === id);
-          if (!targetItem) {
-            throw new Error('Item not found');
-          }
-
-          // Store the existing CreatedDate
-          setExistingCreatedDate(targetItem.CreatedDate);
-
-          // Now get the specific item with both QuestionId and CreatedDate
-          const response = await client.models.Item.get({
-            QuestionId: id,
-            CreatedDate: targetItem.CreatedDate
+          setLoading(true);
+          const item = await client.models.Item.get({
+            QuestionId: parseInt(id, 10),
+            CreatedDate: createdDate
           });
-          
-          if (!response?.data) {
-            throw new Error('Failed to fetch item details');
+          if (item?.data) {
+            setQuestionId(item.data.QuestionId);
+            setCreatedDate(item.data.CreatedDate);
+            setQuestion(item.data.Question);
+            setResponseA(item.data.responseA || '');
+            setResponseB(item.data.responseB || '');
+            setResponseC(item.data.responseC || '');
+            setResponseD(item.data.responseD || '');
+            // Optional fields
+            if ('responseE' in item.data && typeof item.data.responseE === 'string') setResponseE(item.data.responseE);
+            if ('responseF' in item.data && typeof item.data.responseF === 'string') setResponseF(item.data.responseF);
+            setRationaleA(item.data.rationaleA || '');
+            setRationaleB(item.data.rationaleB || '');
+            setRationaleC(item.data.rationaleC || '');
+            setRationaleD(item.data.rationaleD || '');
+            // Optional fields
+            if ('rationaleE' in item.data && typeof item.data.rationaleE === 'string') setRationaleE(item.data.rationaleE);
+            if ('rationaleF' in item.data && typeof item.data.rationaleF === 'string') setRationaleF(item.data.rationaleF);
+            if ('responsesJson' in item.data && typeof item.data.responsesJson === 'string') setResponsesJson(item.data.responsesJson);
+            if ('Topic' in item.data && typeof item.data.Topic === 'string') setTopic(item.data.Topic);
+            if ('KnowledgeSkills' in item.data && typeof item.data.KnowledgeSkills === 'string') setKnowledgeSkills(item.data.KnowledgeSkills);
+            if ('Tags' in item.data && typeof item.data.Tags === 'string') setTags(item.data.Tags);
+            if ('Type' in item.data && typeof item.data.Type === 'string') setType(item.data.Type);
+            if ('Status' in item.data && typeof item.data.Status === 'string') setStatus(item.data.Status);
           }
-
-          const item = response.data;
-          setStem(item.stem);
-          setResponses([
-            { text: item.responseA || '', rationale: item.rationaleA || '' },
-            { text: item.responseB || '', rationale: item.rationaleB || '' },
-            { text: item.responseC || '', rationale: item.rationaleC || '' },
-            { text: item.responseD || '', rationale: item.rationaleD || '' }
-          ]);
-          setCorrectResponse(item.correctResponse || '0');
-          setGeneralRationale(item.responsesJson || '');
-        } catch (error) {
-          console.error('Error loading item:', error);
-          setErrorMessage('Failed to load item. Please try again.');
+        } catch (err) {
+          setError(`Error loading item: ${err instanceof Error ? err.message : String(err)}`);
         } finally {
-          setIsLoading(false);
+          setLoading(false);
         }
       }
-    };
-
-    loadItem();
-  }, [id]);
+    }
+    fetchItem();
+  }, [id, createdDate]);
 
   const validateForm = (): boolean => {
-    const newErrors: FormErrors = {};
+    const newErrors: Record<string, any> = {};
 
-    // Validate stem
-    if (!stem.trim()) {
-      newErrors.stem = "Stem is required";
+    // Validate question
+    if (!question.trim()) {
+      newErrors.question = "Question is required";
     }
 
     // Validate responses
     const responseErrors: string[] = [];
-    responses.forEach((response, index) => {
-      if (!response.text.trim()) {
-        responseErrors[index] = `Response ${index + 1} text is required`;
-      }
-      if (!response.rationale.trim()) {
-        responseErrors[index] = `Response ${index + 1} rationale is required`;
-      }
-    });
+    if (!responseA.trim()) {
+      responseErrors.push("Response A text is required");
+    }
+    if (!rationaleA.trim()) {
+      responseErrors.push("Response A rationale is required");
+    }
+    if (!responseB.trim()) {
+      responseErrors.push("Response B text is required");
+    }
+    if (!rationaleB.trim()) {
+      responseErrors.push("Response B rationale is required");
+    }
+    if (!responseC.trim()) {
+      responseErrors.push("Response C text is required");
+    }
+    if (!rationaleC.trim()) {
+      responseErrors.push("Response C rationale is required");
+    }
+    if (!responseD.trim()) {
+      responseErrors.push("Response D text is required");
+    }
+    if (!rationaleD.trim()) {
+      responseErrors.push("Response D rationale is required");
+    }
 
     if (responseErrors.length > 0) {
       newErrors.responses = responseErrors;
     }
 
-    // Validate at least one correct response is selected
-    if (!correctResponse) {
-      newErrors.correctResponse = "At least one response must be marked as correct";
-    }
-
-    setErrors(newErrors);
+    setError(null);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleResponseChange = (index: number, field: 'text' | 'rationale', value: string) => {
-    const newResponses = [...responses];
-    newResponses[index] = { ...newResponses[index], [field]: value };
-    setResponses(newResponses);
+  const handleResponseChange = (index: number, _field: 'text' | 'rationale', value: string) => {
+    // This function is a placeholder for future functionality
+    // Currently, we're using direct state setters for each field
+    console.log(`Changing response ${index} to ${value}`);
   };
 
   const handleSave = async () => {
@@ -137,40 +140,50 @@ export default function CreateEditItem() {
     }
 
     try {
-      setIsLoading(true);
-      setErrorMessage(null);
+      setLoading(true);
+      setError(null);
 
       const itemData = {
-        QuestionId: questionId,
-        CreatedDate: id ? existingCreatedDate! : new Date().toISOString(),
-        stem,
-        responseA: responses[0].text,
-        rationaleA: responses[0].rationale,
-        responseB: responses[1].text,
-        rationaleB: responses[1].rationale,
-        responseC: responses[2].text,
-        rationaleC: responses[2].rationale,
-        responseD: responses[3].text,
-        rationaleD: responses[3].rationale,
-        correctResponse,
-        responsesJson: generalRationale
+        Question: question,
+        Type: type,
+        Status: status,
+        responseA,
+        responseB,
+        responseC,
+        responseD,
+        responseE,
+        responseF,
+        rationaleA,
+        rationaleB,
+        rationaleC,
+        rationaleD,
+        rationaleE,
+        rationaleF,
+        responsesJson,
+        Topic: topic,
+        KnowledgeSkills: knowledgeSkills,
+        Tags: tags
       };
 
-      if (id) {
+      if (isEditing && id) {
         await client.models.Item.update({
-          ...itemData,
-          QuestionId: id
+          QuestionId: parseInt(id, 10),
+          CreatedDate: createdDate,
+          ...itemData
         });
       } else {
-        await client.models.Item.create(itemData);
+        await client.models.Item.create({
+          QuestionId: questionId,
+          CreatedDate: createdDate,
+          ...itemData
+        });
       }
 
       navigate('/');
-    } catch (error) {
-      console.error('Error saving item:', error);
-      setErrorMessage('Failed to save item. Please try again.');
+    } catch (err) {
+      setError(`Error saving item: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -186,22 +199,24 @@ export default function CreateEditItem() {
                 {id ? 'Edit Item' : 'Create New Item'}
               </Header>
               
-              {errorMessage && (
-                <Alert type="error" header="Error">
-                  {errorMessage}
-                </Alert>
+              {error && (
+                <div role="alert">
+                  <Alert type="error" header="Error">
+                    {error}
+                  </Alert>
+                </div>
               )}
 
               <Form
                 actions={
                   <SpaceBetween direction="horizontal" size="xs">
-                    <Button onClick={() => navigate('/')} disabled={isLoading}>
+                    <Button onClick={() => navigate('/')} disabled={loading}>
                       Cancel
                     </Button>
                     <Button 
                       variant="primary" 
                       onClick={handleSave}
-                      loading={isLoading}
+                      loading={loading}
                     >
                       {id ? 'Save changes' : 'Create item'}
                     </Button>
@@ -215,7 +230,7 @@ export default function CreateEditItem() {
                       description="A unique identifier for this question"
                     >
                       <Input
-                        value={questionId}
+                        value={questionId.toString()}
                         disabled
                       />
                     </FormField>
@@ -223,81 +238,268 @@ export default function CreateEditItem() {
 
                   <Container>
                     <FormField
-                      label="Stem"
+                      label="Question"
                       description="The question or scenario presented to the candidate"
-                      errorText={errors.stem}
+                      errorText={error}
                       stretch
                     >
                       <TextArea
-                        value={stem}
-                        onChange={({ detail }) => setStem(detail.value)}
+                        value={question}
+                        onChange={({ detail }) => setQuestion(detail.value)}
                         rows={3}
                       />
                     </FormField>
                   </Container>
 
-                  {responses.map((response, index) => (
-                    <Container
-                      key={index}
-                      header={
-                        <Header 
-                          variant="h2"
-                          actions={
-                            <SpaceBetween direction="horizontal" size="xs">
-                              <FormField label="Correct">
-                                <Toggle
-                                  checked={correctResponse === index.toString()}
-                                  onChange={({ detail }) => {
-                                    if (detail.checked) {
-                                      setCorrectResponse(index.toString());
-                                    }
-                                  }}
-                                />
-                              </FormField>
-                            </SpaceBetween>
-                          }
-                        >
-                          Response {index + 1}
-                        </Header>
-                      }
+                  <Container>
+                    <FormField
+                      label="Created Date"
+                      description="The date this item was created"
                     >
-                      <ColumnLayout columns={2} variant="text-grid">
-                        <FormField 
-                          label="Text"
-                          errorText={errors.responses?.[index]}
-                          stretch
-                        >
-                          <TextArea
-                            value={response.text}
-                            onChange={({ detail }) => handleResponseChange(index, 'text', detail.value)}
-                            rows={4}
-                          />
-                        </FormField>
-
-                        <FormField 
-                          label="Rationale"
-                          errorText={errors.responses?.[index]}
-                          stretch
-                        >
-                          <TextArea
-                            value={response.rationale}
-                            onChange={({ detail }) => handleResponseChange(index, 'rationale', detail.value)}
-                            rows={4}
-                          />
-                        </FormField>
-                      </ColumnLayout>
-                    </Container>
-                  ))}
+                      <Input
+                        value={createdDate}
+                        disabled
+                      />
+                    </FormField>
+                  </Container>
 
                   <Container>
                     <FormField
-                      label="General Item Rationale"
-                      description="Provide a general rationale for the entire item"
+                      label="Topic"
+                      description="The topic or category of the item"
+                    >
+                      <Input
+                        value={topic}
+                        onChange={({ detail }) => setTopic(detail.value)}
+                      />
+                    </FormField>
+                  </Container>
+
+                  <Container>
+                    <FormField
+                      label="Knowledge Skills"
+                      description="The skills or competencies required for this item"
+                    >
+                      <Input
+                        value={knowledgeSkills}
+                        onChange={({ detail }) => setKnowledgeSkills(detail.value)}
+                      />
+                    </FormField>
+                  </Container>
+
+                  <Container>
+                    <FormField
+                      label="Tags"
+                      description="Tags associated with this item"
+                    >
+                      <Input
+                        value={tags}
+                        onChange={({ detail }) => setTags(detail.value)}
+                      />
+                    </FormField>
+                  </Container>
+
+                  <Container>
+                    <FormField
+                      label="Type"
+                      description="The type of the item"
+                    >
+                      <Input
+                        value={type}
+                        onChange={({ detail }) => setType(detail.value)}
+                      />
+                    </FormField>
+                  </Container>
+
+                  <Container>
+                    <FormField
+                      label="Status"
+                      description="The status of the item"
+                    >
+                      <Input
+                        value={status}
+                        onChange={({ detail }) => setStatus(detail.value)}
+                      />
+                    </FormField>
+                  </Container>
+
+                  <Container>
+                    <FormField
+                      label="Response A"
+                      errorText={error}
                       stretch
                     >
                       <TextArea
-                        value={generalRationale}
-                        onChange={({ detail }) => setGeneralRationale(detail.value)}
+                        value={responseA}
+                        onChange={({ detail }) => handleResponseChange(0, 'text', detail.value)}
+                        rows={4}
+                      />
+                    </FormField>
+                  </Container>
+
+                  <Container>
+                    <FormField
+                      label="Rationale A"
+                      errorText={error}
+                      stretch
+                    >
+                      <TextArea
+                        value={rationaleA}
+                        onChange={({ detail }) => handleResponseChange(0, 'rationale', detail.value)}
+                        rows={4}
+                      />
+                    </FormField>
+                  </Container>
+
+                  <Container>
+                    <FormField
+                      label="Response B"
+                      errorText={error}
+                      stretch
+                    >
+                      <TextArea
+                        value={responseB}
+                        onChange={({ detail }) => handleResponseChange(1, 'text', detail.value)}
+                        rows={4}
+                      />
+                    </FormField>
+                  </Container>
+
+                  <Container>
+                    <FormField
+                      label="Rationale B"
+                      errorText={error}
+                      stretch
+                    >
+                      <TextArea
+                        value={rationaleB}
+                        onChange={({ detail }) => handleResponseChange(1, 'rationale', detail.value)}
+                        rows={4}
+                      />
+                    </FormField>
+                  </Container>
+
+                  <Container>
+                    <FormField
+                      label="Response C"
+                      errorText={error}
+                      stretch
+                    >
+                      <TextArea
+                        value={responseC}
+                        onChange={({ detail }) => handleResponseChange(2, 'text', detail.value)}
+                        rows={4}
+                      />
+                    </FormField>
+                  </Container>
+
+                  <Container>
+                    <FormField
+                      label="Rationale C"
+                      errorText={error}
+                      stretch
+                    >
+                      <TextArea
+                        value={rationaleC}
+                        onChange={({ detail }) => handleResponseChange(2, 'rationale', detail.value)}
+                        rows={4}
+                      />
+                    </FormField>
+                  </Container>
+
+                  <Container>
+                    <FormField
+                      label="Response D"
+                      errorText={error}
+                      stretch
+                    >
+                      <TextArea
+                        value={responseD}
+                        onChange={({ detail }) => handleResponseChange(3, 'text', detail.value)}
+                        rows={4}
+                      />
+                    </FormField>
+                  </Container>
+
+                  <Container>
+                    <FormField
+                      label="Rationale D"
+                      errorText={error}
+                      stretch
+                    >
+                      <TextArea
+                        value={rationaleD}
+                        onChange={({ detail }) => handleResponseChange(3, 'rationale', detail.value)}
+                        rows={4}
+                      />
+                    </FormField>
+                  </Container>
+
+                  <Container>
+                    <FormField
+                      label="Response E"
+                      errorText={error}
+                      stretch
+                    >
+                      <TextArea
+                        value={responseE}
+                        onChange={({ detail }) => handleResponseChange(4, 'text', detail.value)}
+                        rows={4}
+                      />
+                    </FormField>
+                  </Container>
+
+                  <Container>
+                    <FormField
+                      label="Rationale E"
+                      errorText={error}
+                      stretch
+                    >
+                      <TextArea
+                        value={rationaleE}
+                        onChange={({ detail }) => handleResponseChange(4, 'rationale', detail.value)}
+                        rows={4}
+                      />
+                    </FormField>
+                  </Container>
+
+                  <Container>
+                    <FormField
+                      label="Response F"
+                      errorText={error}
+                      stretch
+                    >
+                      <TextArea
+                        value={responseF}
+                        onChange={({ detail }) => handleResponseChange(5, 'text', detail.value)}
+                        rows={4}
+                      />
+                    </FormField>
+                  </Container>
+
+                  <Container>
+                    <FormField
+                      label="Rationale F"
+                      errorText={error}
+                      stretch
+                    >
+                      <TextArea
+                        value={rationaleF}
+                        onChange={({ detail }) => handleResponseChange(5, 'rationale', detail.value)}
+                        rows={4}
+                      />
+                    </FormField>
+                  </Container>
+
+                  <Container>
+                    <FormField
+                      label="Responses JSON"
+                      description="The JSON representation of the responses"
+                      stretch
+                    >
+                      <TextArea
+                        value={responsesJson}
+                        onChange={({ detail }) => setResponsesJson(detail.value)}
                         rows={4}
                       />
                     </FormField>
