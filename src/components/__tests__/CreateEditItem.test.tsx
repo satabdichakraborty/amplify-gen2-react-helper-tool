@@ -78,7 +78,7 @@ vi.mock('../../main', () => ({
             rationaleD: 'Existing Rationale D',
             rationaleE: 'Existing Rationale E',
             rationaleF: 'Existing Rationale F',
-            Rationale: '{"key": "value"}',
+            Rationale: 'A',
             Topic: 'Test Topic',
             KnowledgeSkills: 'Test Skills',
             Tags: 'test,tags',

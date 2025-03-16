@@ -46,8 +46,8 @@ describe('BulkUpload', () => {
     );
 
     // Create a test CSV file
-    const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,rationaleA,rationaleB,rationaleC,rationaleD
-123,2023-01-01,Test question,MCQ,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D`;
+    const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,rationaleA,rationaleB,rationaleC,rationaleD,Rationale
+123,2023-01-01,Test question,MCQ,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,A`;
     
     const file = new File([csvContent], 'test.csv', { type: 'text/csv' });
     // Add toString method for tests
@@ -83,7 +83,7 @@ describe('BulkUpload', () => {
         responseF: undefined,
         rationaleE: undefined,
         rationaleF: undefined,
-        Rationale: '',
+        Rationale: 'A',
         Topic: '',
         KnowledgeSkills: '',
         Tags: ''
@@ -183,5 +183,39 @@ describe('BulkUpload', () => {
     
     // Verify onDismiss was called
     expect(mockOnDismiss).toHaveBeenCalled();
+  });
+
+  it('handles invalid Rationale format', async () => {
+    render(
+      <BulkUpload
+        visible={true}
+        onDismiss={mockOnDismiss}
+        onUploadComplete={mockOnUploadComplete}
+      />
+    );
+
+    // Create a CSV file with invalid Rationale
+    const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,rationaleA,rationaleB,rationaleC,rationaleD,Rationale
+123,2023-01-01,Test question,MCQ,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,X`;
+    
+    const file = new File([csvContent], 'invalid.csv', { type: 'text/csv' });
+    // Add toString method for tests
+    Object.defineProperty(file, 'toString', {
+      value: function() { return csvContent; }
+    });
+    
+    // Select the file
+    const fileInput = screen.getByLabelText('Choose file');
+    await userEvent.upload(fileInput, file);
+    
+    // Click upload button
+    const uploadButton = screen.getByRole('button', { name: /Upload/i });
+    await userEvent.click(uploadButton);
+    
+    // Verify error message
+    await waitFor(() => {
+      const alert = screen.getByRole('alert');
+      expect(alert).toHaveTextContent('Row 1: Rationale must be a single character (A-F) representing the correct answer');
+    });
   });
 }); 

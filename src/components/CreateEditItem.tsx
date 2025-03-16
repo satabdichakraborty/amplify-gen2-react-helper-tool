@@ -72,26 +72,23 @@ export function CreateEditItem() {
             if ('rationaleF' in item.data && typeof item.data.rationaleF === 'string') setRationaleF(item.data.rationaleF);
             if ('Rationale' in item.data && typeof item.data.Rationale === 'string') {
               setRationale(item.data.Rationale);
-              // Parse Rationale to get correctAnswer
-              try {
-                const parsedJson = JSON.parse(item.data.Rationale);
-                if (parsedJson.correctAnswer) {
-                  setCorrectAnswer(parsedJson.correctAnswer);
-                }
-              } catch (e) {
-                console.error('Error parsing Rationale:', e);
+              // Set correctAnswer based on the first character of Rationale if it's a valid option
+              const firstChar = item.data.Rationale.trim().charAt(0).toUpperCase();
+              if (['A', 'B', 'C', 'D', 'E', 'F'].includes(firstChar)) {
+                setCorrectAnswer(firstChar);
               }
             } else if ('responsesJson' in item.data && typeof item.data.responsesJson === 'string') {
               // Backward compatibility for old data
-              setRationale(item.data.responsesJson);
-              // Parse responsesJson to get correctAnswer
               try {
                 const parsedJson = JSON.parse(item.data.responsesJson);
                 if (parsedJson.correctAnswer) {
                   setCorrectAnswer(parsedJson.correctAnswer);
+                  // Convert JSON to string format
+                  setRationale(parsedJson.correctAnswer);
                 }
               } catch (e) {
                 console.error('Error parsing responsesJson:', e);
+                setRationale('');
               }
             }
             if ('Topic' in item.data && typeof item.data.Topic === 'string') setTopic(item.data.Topic);
@@ -112,7 +109,7 @@ export function CreateEditItem() {
 
   // Update Rationale when correctAnswer changes
   useEffect(() => {
-    setRationale(JSON.stringify({ correctAnswer }));
+    setRationale(correctAnswer);
   }, [correctAnswer]);
 
   const validateForm = (): boolean => {

@@ -77,6 +77,14 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
       if (!dateRegex.test(row.CreatedDate)) {
         return `Row ${i + 1}: CreatedDate must be in YYYY-MM-DD format`;
       }
+
+      // Validate Rationale if provided (should be a single character A-F)
+      if (row.Rationale && row.Rationale.trim()) {
+        const firstChar = row.Rationale.trim().charAt(0).toUpperCase();
+        if (!['A', 'B', 'C', 'D', 'E', 'F'].includes(firstChar)) {
+          return `Row ${i + 1}: Rationale must be a single character (A-F) representing the correct answer`;
+        }
+      }
     }
 
     return null;
@@ -247,7 +255,7 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
             <li>Required fields: QuestionId, CreatedDate, Question, responseA-D, rationaleA-D</li>
             <li>Optional fields: Type, Status, Topic, KnowledgeSkills, Tags</li>
             <li>Dates must be in YYYY-MM-DD format</li>
-            <li>Rationale must be valid JSON</li>
+            <li>Rationale should be a single character (A-F) representing the correct answer</li>
           </ul>
         </TextContent>
       </SpaceBetween>
