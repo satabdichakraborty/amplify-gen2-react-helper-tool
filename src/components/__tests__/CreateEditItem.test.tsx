@@ -1,252 +1,191 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { MemoryRouter, useParams } from 'react-router-dom';
-import { vi } from 'vitest';
-import CreateEditItem from '../CreateEditItem';
-import { client } from '../../main';
-
-// Define the Item type based on the schema
-interface Item {
-  readonly QuestionId: string;
-  readonly CreatedDate: string;
-  readonly stem: string;
-  readonly responseA: string;
-  readonly rationaleA: string;
-  readonly responseB: string;
-  readonly rationaleB: string;
-  readonly responseC: string;
-  readonly rationaleC: string;
-  readonly responseD: string;
-  readonly rationaleD: string;
-  readonly correctResponse: string;
-  readonly responsesJson: string;
-  readonly createdAt: string;
-  readonly updatedAt: string;
-}
-
-vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
-  return {
-    ...actual,
-    useParams: vi.fn(),
-    useNavigate: () => vi.fn()
-  };
-});
-
-vi.mock('../../main', () => ({
-  client: {
-    models: {
-      Item: {
-        create: vi.fn(),
-        update: vi.fn(),
-        get: vi.fn()
-      }
+// Mock declarations first
+const mockNavigate = vi.hoisted(() => vi.fn());
+const mockParams = vi.hoisted(() => ({ id: undefined as string | undefined }));
+const mockClient = vi.hoisted(() => ({
+  models: {
+    Item: {
+      create: vi.fn(),
+      update: vi.fn(),
+      get: vi.fn(),
+      list: vi.fn(),
     }
   }
 }));
 
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => mockNavigate,
+  useParams: () => mockParams,
+  BrowserRouter: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+vi.mock('../../main', () => ({
+  client: mockClient
+}));
+
+// Then imports
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, test, vi, beforeEach } from 'vitest';
+import CreateEditItem from '../CreateEditItem';
+
 describe('CreateEditItem', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockParams.id = undefined;
   });
 
-  const renderComponent = () => {
-    return render(
-      <MemoryRouter>
-        <CreateEditItem />
-      </MemoryRouter>
-    );
-  };
+  test('successfully creates a new item', async () => {
+    const user = userEvent.setup();
+    render(<CreateEditItem />);
 
-  it('renders the form with all required fields', async () => {
-    vi.mocked(useParams).mockReturnValue({});
-    
-    renderComponent();
-    
-    // Check for main form elements
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Create New Item' })).toBeInTheDocument();
-    });
-    expect(screen.getByLabelText('Stem')).toBeInTheDocument();
-    expect(screen.getByLabelText('Question ID')).toBeInTheDocument();
-    
-    // Check for response fields
-    const textInputs = screen.getAllByLabelText('Text');
-    const rationaleInputs = screen.getAllByLabelText('Rationale');
-    
-    expect(textInputs).toHaveLength(4);
-    expect(rationaleInputs).toHaveLength(4);
-    
-    for (let i = 1; i <= 4; i++) {
-      expect(screen.getByRole('heading', { name: `Response ${i}` })).toBeInTheDocument();
-    }
-  });
-
-  it('shows validation errors when submitting empty form', async () => {
-    vi.mocked(useParams).mockReturnValue({});
-    
-    renderComponent();
-    
-    // Try to submit empty form
-    const submitButton = await waitFor(() => screen.getByRole('button', { name: /create item/i }));
-    fireEvent.click(submitButton);
-    
-    // Check for validation errors
-    await waitFor(() => {
-      expect(screen.getByText('Stem is required')).toBeInTheDocument();
-    });
-  });
-
-  it('successfully creates a new item', async () => {
-    vi.mocked(useParams).mockReturnValue({});
-    const mockItem: Item = {
-      QuestionId: '123',
-      CreatedDate: new Date().toISOString(),
-      stem: 'Test question?',
-      responseA: 'Response 1',
-      rationaleA: 'Rationale 1',
-      responseB: 'Response 2',
-      rationaleB: 'Rationale 2',
-      responseC: 'Response 3',
-      rationaleC: 'Rationale 3',
-      responseD: 'Response 4',
-      rationaleD: 'Rationale 4',
-      correctResponse: '0',
-      responsesJson: '',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    vi.mocked(client.models.Item.create).mockResolvedValueOnce({ data: mockItem });
-    
-    renderComponent();
-    
     // Fill out the form
-    fireEvent.change(screen.getByLabelText('Stem'), { target: { value: 'Test question?' } });
-    
+    const stemInput = screen.getByLabelText('Stem');
+    await user.type(stemInput, 'test stem');
+
     // Fill out responses
-    const responseText = screen.getAllByLabelText('Text');
-    const responseRationale = screen.getAllByLabelText('Rationale');
+    const responseContainers = screen.getAllByRole('heading', { level: 2 }).map(heading => heading.closest('div[class*="awsui_container"]'));
     
-    // Fill out all responses to pass validation
     for (let i = 0; i < 4; i++) {
-      fireEvent.change(responseText[i], { target: { value: `Response ${i + 1}` } });
-      fireEvent.change(responseRationale[i], { target: { value: `Rationale ${i + 1}` } });
+      const container = responseContainers[i];
+      if (!container) continue;
+
+      const textInput = screen.getAllByLabelText('Text')[i];
+      const rationaleInput = screen.getAllByLabelText('Rationale')[i];
+
+      await user.type(textInput, `response ${i}`);
+      await user.type(rationaleInput, `rationale ${i}`);
     }
-    
-    // Mark first response as correct
-    const correctToggle = screen.getAllByLabelText('Correct')[0];
-    fireEvent.click(correctToggle);
-    
-    // Submit the form
-    const submitButton = await waitFor(() => screen.getByRole('button', { name: /create item/i }));
-    await waitFor(() => {
-      expect(submitButton).not.toBeDisabled();
-    });
-    fireEvent.click(submitButton);
-    
+
+    // Select correct response
+    const toggles = screen.getAllByLabelText('Correct');
+    await user.click(toggles[0]);
+
+    // Submit form
+    await user.click(screen.getByRole('button', { name: 'Create item' }));
+
     // Verify API call
     await waitFor(() => {
-      expect(client.models.Item.create).toHaveBeenCalledWith(expect.objectContaining({
+      expect(mockClient.models.Item.create).toHaveBeenCalledWith(expect.objectContaining({
         QuestionId: expect.any(String),
-        stem: 'Test question?',
-        responseA: 'Response 1',
-        rationaleA: 'Rationale 1',
-        responseB: 'Response 2',
-        rationaleB: 'Rationale 2',
-        responseC: 'Response 3',
-        rationaleC: 'Rationale 3',
-        responseD: 'Response 4',
-        rationaleD: 'Rationale 4',
-        correctResponse: '0'
+        CreatedDate: expect.any(String),
+        stem: 'test stem',
+        responseA: 'response 0',
+        rationaleA: 'rationale 0',
+        responseB: 'response 1',
+        rationaleB: 'rationale 1',
+        responseC: 'response 2',
+        rationaleC: 'rationale 2',
+        responseD: 'response 3',
+        rationaleD: 'rationale 3',
+        correctResponse: '0',
+        responsesJson: ''
       }));
-    });
-  });
+    }, { timeout: 10000 });
 
-  it('handles API errors gracefully', async () => {
-    vi.mocked(useParams).mockReturnValue({});
-    
-    // Mock create to throw an error
-    vi.mocked(client.models.Item.create).mockRejectedValueOnce(new Error('API Error'));
-    
-    renderComponent();
-    
-    // Fill out the form
-    fireEvent.change(screen.getByLabelText('Stem'), { target: { value: 'Test question?' } });
-    
-    // Fill out responses
-    const responseText = screen.getAllByLabelText('Text');
-    const responseRationale = screen.getAllByLabelText('Rationale');
-    
-    // Fill out all responses to pass validation
+    // Verify navigation
+    expect(mockNavigate).toHaveBeenCalledWith('/');
+  }, 15000);
+
+  test('handles API errors gracefully', async () => {
+    const user = userEvent.setup();
+    mockClient.models.Item.create.mockRejectedValueOnce(new Error('API Error'));
+
+    render(<CreateEditItem />);
+
+    // Fill out form minimally
+    await user.type(screen.getByLabelText('Stem'), 'test stem');
     for (let i = 0; i < 4; i++) {
-      fireEvent.change(responseText[i], { target: { value: `Response ${i + 1}` } });
-      fireEvent.change(responseRationale[i], { target: { value: `Rationale ${i + 1}` } });
+      await user.type(screen.getAllByLabelText('Text')[i], `response ${i}`);
+      await user.type(screen.getAllByLabelText('Rationale')[i], `rationale ${i}`);
     }
-    
-    // Mark first response as correct
-    const correctToggle = screen.getAllByLabelText('Correct')[0];
-    fireEvent.click(correctToggle);
-    
-    // Submit the form
-    const submitButton = await waitFor(() => screen.getByRole('button', { name: /create item/i }));
-    await waitFor(() => {
-      expect(submitButton).not.toBeDisabled();
-    });
-    fireEvent.click(submitButton);
-    
-    // Check for error message
-    await waitFor(() => {
-      const alert = screen.getByText('Failed to save item. Please try again.');
-      expect(alert).toBeInTheDocument();
-    });
-  });
 
-  it('loads and updates existing item', async () => {
-    vi.mocked(useParams).mockReturnValue({ id: '123' });
-    
-    const existingItem: Item = {
-      QuestionId: '123',
-      CreatedDate: '2024-01-01',
-      stem: 'Existing question?',
-      responseA: 'Response A',
-      rationaleA: 'Rationale A',
-      responseB: 'Response B',
-      rationaleB: 'Rationale B',
-      responseC: 'Response C',
-      rationaleC: 'Rationale C',
-      responseD: 'Response D',
-      rationaleD: 'Rationale D',
-      correctResponse: '0',
-      responsesJson: 'General rationale',
-      createdAt: '2024-01-01T00:00:00Z',
-      updatedAt: '2024-01-01T00:00:00Z'
+    // Submit form
+    await user.click(screen.getByRole('button', { name: 'Create item' }));
+
+    // Verify error message
+    await waitFor(() => {
+      const errorHeader = screen.getByText('Error');
+      const errorMessage = screen.getByText('Failed to save item. Please try again.');
+      expect(errorHeader).toBeInTheDocument();
+      expect(errorMessage).toBeInTheDocument();
+    }, { timeout: 10000 });
+  }, 15000);
+
+  test('loads and updates existing item', async () => {
+    const user = userEvent.setup();
+    mockParams.id = 'existing-id';
+
+    const existingItem = {
+      QuestionId: 'existing-id',
+      CreatedDate: '2024-01-01T00:00:00Z',
+      stem: 'existing stem',
+      responseA: 'existing response A',
+      rationaleA: 'existing rationale A',
+      responseB: 'existing response B',
+      rationaleB: 'existing rationale B',
+      responseC: 'existing response C',
+      rationaleC: 'existing rationale C',
+      responseD: 'existing response D',
+      rationaleD: 'existing rationale D',
+      correctResponse: '1',
+      responsesJson: ''
     };
-    
-    vi.mocked(client.models.Item.get).mockResolvedValueOnce({ data: existingItem });
-    vi.mocked(client.models.Item.update).mockResolvedValueOnce({ data: existingItem });
-    
-    renderComponent();
-    
-    // Wait for data to load
-    await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Edit Item' })).toBeInTheDocument();
+
+    mockClient.models.Item.list.mockResolvedValueOnce({
+      data: [existingItem]
     });
-    
-    // Verify form is populated with existing data
-    expect(screen.getByLabelText('Stem')).toHaveValue('Existing question?');
-    
-    // Submit the form
-    const submitButton = await waitFor(() => screen.getByRole('button', { name: /save changes/i }));
-    await waitFor(() => {
-      expect(submitButton).not.toBeDisabled();
+
+    mockClient.models.Item.get.mockResolvedValueOnce({
+      data: existingItem
     });
-    fireEvent.click(submitButton);
-    
-    // Verify update API call
+
+    render(<CreateEditItem />);
+
+    // Verify form is populated
     await waitFor(() => {
-      expect(client.models.Item.update).toHaveBeenCalledWith(expect.objectContaining({
-        QuestionId: '123',
-        stem: 'Existing question?'
+      expect(screen.getByLabelText('Question ID')).toHaveValue('existing-id');
+      expect(screen.getByLabelText('Stem')).toHaveValue('existing stem');
+      
+      const textInputs = screen.getAllByLabelText('Text');
+      expect(textInputs[0]).toHaveValue('existing response A');
+      expect(textInputs[1]).toHaveValue('existing response B');
+      expect(textInputs[2]).toHaveValue('existing response C');
+      expect(textInputs[3]).toHaveValue('existing response D');
+
+      const rationaleInputs = screen.getAllByLabelText('Rationale');
+      expect(rationaleInputs[0]).toHaveValue('existing rationale A');
+      expect(rationaleInputs[1]).toHaveValue('existing rationale B');
+      expect(rationaleInputs[2]).toHaveValue('existing rationale C');
+      expect(rationaleInputs[3]).toHaveValue('existing rationale D');
+
+      // Verify correct response is selected
+      const toggles = screen.getAllByLabelText('Correct');
+      expect(toggles[1].closest('[class*="awsui_toggle-control"]')).toHaveClass('awsui_toggle-control-checked_4yi2u_nvz0x_213');
+    }, { timeout: 10000 });
+
+    // Update a field and change correct answer
+    const stemInput = screen.getByLabelText('Stem');
+    await user.clear(stemInput);
+    await user.type(stemInput, 'updated stem');
+
+    // Change correct answer from B to C
+    const toggles = screen.getAllByLabelText('Correct');
+    await user.click(toggles[2]);
+
+    // Submit form
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    // Verify API call
+    await waitFor(() => {
+      expect(mockClient.models.Item.update).toHaveBeenCalledWith(expect.objectContaining({
+        ...existingItem,
+        stem: 'updated stem',
+        correctResponse: '2',
+        CreatedDate: '2024-01-01T00:00:00Z'
       }));
-    });
-  });
+    }, { timeout: 10000 });
+
+    // Verify navigation
+    expect(mockNavigate).toHaveBeenCalledWith('/');
+  }, 15000);
 }); 

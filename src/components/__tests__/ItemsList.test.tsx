@@ -201,25 +201,42 @@ describe('ItemsList', () => {
       expect(screen.getByText('Test Question 1')).toBeInTheDocument();
     });
 
-    // Find and click delete button for first item
-    const deleteButtons = screen.getAllByText('Delete');
-    fireEvent.click(deleteButtons[0]);
+    // Click the first delete button in the table
+    const tableRows = screen.getAllByRole('row');
+    const deleteButton = within(tableRows[1]).getByRole('button', { name: 'Delete' });
+    fireEvent.click(deleteButton);
 
-    // Verify modal is visible
-    await waitFor(() => {
-      const modal = screen.getByRole('dialog');
-      expect(modal).toBeInTheDocument();
-      expect(modal).not.toHaveClass('awsui_hidden_1d2i7_miaej_302');
-    });
-
-    // Find and click cancel button
-    const cancelButton = screen.getByText('Cancel');
+    // Click the cancel button in modal
+    const modal = screen.getByRole('dialog');
+    const cancelButton = within(modal).getByRole('button', { name: 'Cancel' });
     fireEvent.click(cancelButton);
 
-    // Wait for modal to be hidden
+    // Verify modal is hidden
     await waitFor(() => {
-      const modal = screen.getByRole('dialog');
       expect(modal).toHaveClass('awsui_hidden_1d2i7_miaej_302');
     });
+  });
+
+  it('has exactly one Add new item button that navigates correctly', async () => {
+    render(
+      <MemoryRouter>
+        <ItemsList />
+      </MemoryRouter>
+    );
+
+    // Wait for items to load
+    await waitFor(() => {
+      expect(screen.getByText('Test Question 1')).toBeInTheDocument();
+    });
+
+    // Verify there is exactly one Add new item button
+    const addButtons = screen.getAllByRole('button', { name: 'Add new item' });
+    expect(addButtons).toHaveLength(1);
+
+    // Click the Add new item button
+    fireEvent.click(addButtons[0]);
+
+    // Verify navigation
+    expect(mockNavigate).toHaveBeenCalledWith('/items/new');
   });
 }); 

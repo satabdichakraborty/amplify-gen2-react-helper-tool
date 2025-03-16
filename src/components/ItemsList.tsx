@@ -146,11 +146,6 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
           header={
             <Header
               counter={`(${filteredItems.length})`}
-              actions={
-                <SpaceBetween direction="horizontal" size="xs">
-                  <Button onClick={() => navigate('/items/new')}>Add new item</Button>
-                </SpaceBetween>
-              }
             >
               Items
             </Header>

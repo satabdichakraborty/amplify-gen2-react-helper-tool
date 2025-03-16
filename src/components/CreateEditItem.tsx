@@ -39,6 +39,7 @@ export default function CreateEditItem() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [existingCreatedDate, setExistingCreatedDate] = useState<string | null>(null);
 
   // Load existing item data if in edit mode
   useEffect(() => {
@@ -46,22 +47,40 @@ export default function CreateEditItem() {
       if (id) {
         try {
           setIsLoading(true);
+          // First get the list of items to find the one with matching ID
+          const itemsResponse = await client.models.Item.list();
+          if (!itemsResponse?.data) {
+            throw new Error('Failed to fetch items');
+          }
+
+          const targetItem = itemsResponse.data.find((item: any) => item.QuestionId === id);
+          if (!targetItem) {
+            throw new Error('Item not found');
+          }
+
+          // Store the existing CreatedDate
+          setExistingCreatedDate(targetItem.CreatedDate);
+
+          // Now get the specific item with both QuestionId and CreatedDate
           const response = await client.models.Item.get({
             QuestionId: id,
-            CreatedDate: new Date().toISOString()
+            CreatedDate: targetItem.CreatedDate
           });
-          const item = response.data;
-          if (item) {
-            setStem(item.stem);
-            setResponses([
-              { text: item.responseA, rationale: item.rationaleA },
-              { text: item.responseB, rationale: item.rationaleB },
-              { text: item.responseC, rationale: item.rationaleC },
-              { text: item.responseD, rationale: item.rationaleD }
-            ]);
-            setCorrectResponse(item.correctResponse);
-            setGeneralRationale(item.responsesJson);
+          
+          if (!response?.data) {
+            throw new Error('Failed to fetch item details');
           }
+
+          const item = response.data;
+          setStem(item.stem);
+          setResponses([
+            { text: item.responseA || '', rationale: item.rationaleA || '' },
+            { text: item.responseB || '', rationale: item.rationaleB || '' },
+            { text: item.responseC || '', rationale: item.rationaleC || '' },
+            { text: item.responseD || '', rationale: item.rationaleD || '' }
+          ]);
+          setCorrectResponse(item.correctResponse || '0');
+          setGeneralRationale(item.responsesJson || '');
         } catch (error) {
           console.error('Error loading item:', error);
           setErrorMessage('Failed to load item. Please try again.');
@@ -123,7 +142,7 @@ export default function CreateEditItem() {
 
       const itemData = {
         QuestionId: questionId,
-        CreatedDate: new Date().toISOString(),
+        CreatedDate: id ? existingCreatedDate! : new Date().toISOString(),
         stem,
         responseA: responses[0].text,
         rationaleA: responses[0].rationale,
