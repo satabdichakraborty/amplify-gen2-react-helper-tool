@@ -16,6 +16,8 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
 # Amplify
 amplify/backend/amplify-meta.json
@@ -42,6 +44,7 @@ logs
 node_modules
 dist
 dist-ssr
+*.local
 
 # Editor directories and files
 .vscode/*
@@ -58,3 +61,7 @@ dist-ssr
 .amplify
 amplifyconfiguration*
 .cursorrules
+
+# Amplify outputs
+amplify_outputs.json
+amplify_outputs.backup.json
