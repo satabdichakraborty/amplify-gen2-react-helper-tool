@@ -30,6 +30,7 @@ amplify/backend/api/*/resolvers/
 amplify/backend/auth/*/build/
 amplify/backend/storage/*/build/
 amplify/backend/hosting/*/build/
+src/amplify_outputs.json
 
 # IDE
 .idea/
