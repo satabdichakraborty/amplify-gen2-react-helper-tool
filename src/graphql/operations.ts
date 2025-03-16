@@ -9,7 +9,7 @@ export type Item = {
   Status: string;
   Key?: string;
   Notes?: string;
-  Rationale?: string;
+  Rationale: string;
   CreatedBy?: string;
   responseA: string;
   rationaleA: string;
@@ -23,7 +23,6 @@ export type Item = {
   rationaleE?: string;
   responseF?: string;
   rationaleF?: string;
-  responsesJson: string;
   Topic?: string;
   KnowledgeSkills?: string;
   Tags?: string;
@@ -56,7 +55,7 @@ export async function getItem(id: number, createdDate: string): Promise<Item | n
   }
 }
 
-export async function createItem(item: Omit<Item, 'QuestionId' | 'CreatedDate'>): Promise<Item> {
+export async function createItem(item: Partial<Item>): Promise<Item> {
   try {
     const response = await client.models.Item.create(item as any);
     return response.data as unknown as Item;

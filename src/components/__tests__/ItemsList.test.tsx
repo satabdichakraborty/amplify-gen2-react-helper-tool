@@ -34,7 +34,7 @@ describe('ItemsList', () => {
       rationaleC: 'RC1',
       responseD: 'D1',
       rationaleD: 'RD1',
-      responsesJson: '',
+      Rationale: '',
       Type: 'MCQ',
       Status: 'Active'
     },
@@ -50,7 +50,7 @@ describe('ItemsList', () => {
       rationaleC: 'RC2',
       responseD: 'D2',
       rationaleD: 'RD2',
-      responsesJson: '',
+      Rationale: '',
       Type: 'MCQ',
       Status: 'Draft'
     }

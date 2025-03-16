@@ -66,6 +66,8 @@ describe('BulkUpload', () => {
     // Verify createItem was called with correct data
     await waitFor(() => {
       expect(createItem).toHaveBeenCalledWith({
+        QuestionId: 123,
+        CreatedDate: '2023-01-01',
         Question: 'Test question',
         Type: 'MCQ',
         Status: 'Active',
@@ -77,11 +79,11 @@ describe('BulkUpload', () => {
         rationaleB: 'Rationale B',
         rationaleC: 'Rationale C',
         rationaleD: 'Rationale D',
-        responseE: '',
-        responseF: '',
-        rationaleE: '',
-        rationaleF: '',
-        responsesJson: '',
+        responseE: undefined,
+        responseF: undefined,
+        rationaleE: undefined,
+        rationaleF: undefined,
+        Rationale: '',
         Topic: '',
         KnowledgeSkills: '',
         Tags: ''

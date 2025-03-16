@@ -19,8 +19,6 @@ interface BulkUploadProps {
 
 interface CSVRow {
   QuestionId: string;
-  Type: string;
-  Status: string;
   Question: string;
   responseA: string;
   responseB: string;
@@ -34,10 +32,12 @@ interface CSVRow {
   rationaleD: string;
   rationaleE?: string;
   rationaleF?: string;
-  responsesJson?: string;
+  Rationale?: string;
   Topic?: string;
   KnowledgeSkills?: string;
   Tags?: string;
+  Type?: string;
+  Status?: string;
   CreatedDate: string;
 }
 
@@ -53,7 +53,7 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
       return 'CSV file is empty';
     }
 
-    const requiredFields = ['QuestionId', 'CreatedDate', 'Question', 'Type', 'Status', 
+    const requiredFields = ['QuestionId', 'CreatedDate', 'Question', 
       'responseA', 'responseB', 'responseC', 'responseD', 
       'rationaleA', 'rationaleB', 'rationaleC', 'rationaleD'];
 
@@ -132,26 +132,29 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
       let successCount = 0;
       for (const row of rows) {
         try {
+          // Use the updated createItem function
           await createItem({
+            QuestionId: parseInt(row.QuestionId, 10),
+            CreatedDate: row.CreatedDate,
             Question: row.Question,
-            Type: row.Type,
-            Status: row.Status,
             responseA: row.responseA,
             responseB: row.responseB,
             responseC: row.responseC,
             responseD: row.responseD,
-            responseE: row.responseE || '',
-            responseF: row.responseF || '',
+            responseE: row.responseE,
+            responseF: row.responseF,
             rationaleA: row.rationaleA,
             rationaleB: row.rationaleB,
             rationaleC: row.rationaleC,
             rationaleD: row.rationaleD,
-            rationaleE: row.rationaleE || '',
-            rationaleF: row.rationaleF || '',
-            responsesJson: row.responsesJson || '',
+            rationaleE: row.rationaleE,
+            rationaleF: row.rationaleF,
+            Rationale: row.Rationale || '',
             Topic: row.Topic || '',
             KnowledgeSkills: row.KnowledgeSkills || '',
-            Tags: row.Tags || ''
+            Tags: row.Tags || '',
+            Type: row.Type || 'MCQ',
+            Status: row.Status || 'Draft'
           });
           successCount++;
         } catch (err) {
@@ -241,9 +244,10 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
           <h4>File format requirements:</h4>
           <ul>
             <li>CSV file with headers</li>
-            <li>Required fields: QuestionId, Type, Status, Question, responseA-D, rationaleA-D</li>
-            <li>Dates must be in ISO 8601 format (YYYY-MM-DDThh:mm:ssZ)</li>
-            <li>responsesJson must be valid JSON</li>
+            <li>Required fields: QuestionId, CreatedDate, Question, responseA-D, rationaleA-D</li>
+            <li>Optional fields: Type, Status, Topic, KnowledgeSkills, Tags</li>
+            <li>Dates must be in YYYY-MM-DD format</li>
+            <li>Rationale must be valid JSON</li>
           </ul>
         </TextContent>
       </SpaceBetween>
