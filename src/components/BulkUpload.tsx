@@ -150,19 +150,38 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
         return `Row ${i + 1}: CreatedDate cannot be empty`;
       }
 
-      // Validate Key if provided (should be a single character A-H)
+      // Validate Key if provided (should be 1-3 characters consisting of A-H)
       if (row.Key && row.Key.trim()) {
-        const keyChar = row.Key.trim().charAt(0).toUpperCase();
-        if (!['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].includes(keyChar)) {
-          return `Row ${i + 1}: Key must be a single character (A-H) representing the correct answer`;
+        const key = row.Key.trim().toUpperCase();
+        if (key.length > 3) {
+          return `Row ${i + 1}: Key must be 1-3 characters long`;
+        }
+        
+        // Check if all characters in the key are valid (A-H)
+        for (const char of key) {
+          if (!['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].includes(char)) {
+            return `Row ${i + 1}: Key can only contain characters A-H`;
+          }
         }
       }
       
       // For backward compatibility, also check Rationale field
       if (!row.Key && row.Rationale && row.Rationale.trim()) {
-        const firstChar = row.Rationale.trim().charAt(0).toUpperCase();
-        if (!['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].includes(firstChar)) {
-          return `Row ${i + 1}: Rationale must be a single character (A-H) representing the correct answer if Key is not provided`;
+        const firstChars = row.Rationale.trim().substring(0, Math.min(3, row.Rationale.length)).toUpperCase();
+        
+        // Check if the first 1-3 characters could be a valid key
+        let validKey = true;
+        for (const char of firstChars) {
+          if (!['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].includes(char)) {
+            validKey = false;
+            break;
+          }
+        }
+        
+        // If not a valid key, assume it's just a rationale and not a key
+        if (validKey) {
+          // Use the first 1-3 characters as the key
+          row.Key = firstChars;
         }
       }
     }
@@ -463,7 +482,7 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
             <li>Required fields: QuestionId, CreatedDate, Question, responseA-D</li>
             <li>Optional fields: rationaleA-H, responseE-H, Key, Type, Status, Topic, KnowledgeSkills, Tags</li>
             <li>Dates must be in YYYY-MM-DD format</li>
-            <li>Key should be a single character (A-H) representing the correct answer</li>
+            <li>Key should be 1-3 characters long and consist of A-H</li>
           </ul>
         </TextContent>
       </SpaceBetween>

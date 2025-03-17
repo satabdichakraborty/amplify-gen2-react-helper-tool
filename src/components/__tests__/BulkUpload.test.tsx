@@ -266,7 +266,7 @@ describe('BulkUpload', () => {
     // Verify error message
     await waitFor(() => {
       const alert = screen.getByRole('alert');
-      expect(alert).toHaveTextContent('Row 1: Key must be a single character (A-H) representing the correct answer');
+      expect(alert).toHaveTextContent('Key can only contain characters A-H');
     });
   });
 
@@ -541,6 +541,105 @@ describe('BulkUpload', () => {
     await waitFor(() => {
       expect(screen.getByText(/Successfully uploaded 3 items/i)).toBeInTheDocument();
       expect(mockOnUploadComplete).toHaveBeenCalled();
+    });
+  });
+
+  it('handles CSV upload with multi-character keys', async () => {
+    render(
+      <BulkUpload
+        visible={true}
+        onDismiss={mockOnDismiss}
+        onUploadComplete={mockOnUploadComplete}
+      />
+    );
+
+    // Create a test CSV file with multi-character keys
+    const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,Key
+123,2023-01-01,Single answer question,MCQ,Active,Option A,Option B,Option C,Option D,A
+456,2023-01-02,Double answer question,MRQ,Active,Option A,Option B,Option C,Option D,AB
+789,2023-01-03,Triple answer question,MRQ,Active,Option A,Option B,Option C,Option D,ABC`;
+    
+    const file = new File([csvContent], 'test.csv', { type: 'text/csv' });
+    // Add toString method for tests
+    Object.defineProperty(file, 'toString', {
+      value: function() { return csvContent; }
+    });
+    
+    // Select the file
+    const fileInput = screen.getByLabelText('Choose file');
+    await userEvent.upload(fileInput, file);
+    
+    // Click upload button
+    const uploadButton = screen.getByRole('button', { name: /Upload/i });
+    await userEvent.click(uploadButton);
+    
+    // Verify createItem was called with correct data
+    await waitFor(() => {
+      expect(createItem).toHaveBeenCalledTimes(3);
+      
+      // Check single-character key
+      expect(createItem).toHaveBeenCalledWith(expect.objectContaining({
+        QuestionId: 123,
+        CreatedDate: '2023-01-01',
+        Question: 'Single answer question',
+        Key: 'A'
+      }));
+      
+      // Check double-character key
+      expect(createItem).toHaveBeenCalledWith(expect.objectContaining({
+        QuestionId: 456,
+        CreatedDate: '2023-01-02',
+        Question: 'Double answer question',
+        Key: 'AB'
+      }));
+      
+      // Check triple-character key
+      expect(createItem).toHaveBeenCalledWith(expect.objectContaining({
+        QuestionId: 789,
+        CreatedDate: '2023-01-03',
+        Question: 'Triple answer question',
+        Key: 'ABC'
+      }));
+    });
+    
+    // Verify success message and callback
+    await waitFor(() => {
+      expect(screen.getByText(/Successfully uploaded 3 items/i)).toBeInTheDocument();
+      expect(mockOnUploadComplete).toHaveBeenCalled();
+    });
+  });
+
+  it('rejects keys with more than three characters', async () => {
+    render(
+      <BulkUpload
+        visible={true}
+        onDismiss={mockOnDismiss}
+        onUploadComplete={mockOnUploadComplete}
+      />
+    );
+
+    // Create a CSV file with a key that's too long
+    const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,rationaleA,rationaleB,rationaleC,rationaleD,Key
+123,2023-01-01,Test question,MCQ,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,ABCD`;
+    
+    const file = new File([csvContent], 'invalid.csv', { type: 'text/csv' });
+    // Add toString method for tests
+    Object.defineProperty(file, 'toString', {
+      value: function() { return csvContent; }
+    });
+    
+    // Select the file
+    const fileInput = screen.getByLabelText('Choose file');
+    await userEvent.upload(fileInput, file);
+    
+    // Click upload button
+    const uploadButton = screen.getByRole('button', { name: /Upload/i });
+    await userEvent.click(uploadButton);
+    
+    // Verify error message
+    await waitFor(() => {
+      const alert = screen.getByRole('alert');
+      expect(alert).toHaveTextContent('Key must be 1-3 characters long');
     });
   });
 }); 

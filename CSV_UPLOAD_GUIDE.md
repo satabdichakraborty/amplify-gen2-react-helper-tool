@@ -20,7 +20,7 @@ These columns are optional but recommended:
 - **rationaleA, rationaleB, rationaleC, rationaleD**: Explanations for options A through D
 - **responseE, responseF, responseG, responseH**: Additional response options
 - **rationaleE, rationaleF, rationaleG, rationaleH**: Explanations for additional options
-- **Key**: The correct answer (A, B, C, D, E, F, G, or H)
+- **Key**: The correct answer(s) using 1-3 characters from A-H (e.g., A, BC, ABD)
 - **Rationale**: General explanation for the question
 - **Type**: Question type (e.g., MCQ for multiple choice, MRQ for multiple response)
 - **Status**: Question status (e.g., Draft, Active, Archived)
@@ -38,7 +38,10 @@ These columns are optional but recommended:
    - Timestamp: 1717200000
    - Text: June 1, 2024
 
-3. **Key Format**: The Key value should be a single character from A to H, representing the correct answer.
+3. **Key Format**: The Key value should be 1-3 characters long and only contain letters A-H:
+   - For single-answer questions: use a single character (e.g., "A")
+   - For multiple-answer questions: use 2-3 characters (e.g., "AB", "ABD")
+   - Order matters: "ABC" indicates A, B, and C are all correct answers
 
 4. **Required Fields**: While some columns are optional, the system requires values for all the required fields.
 
@@ -53,7 +56,7 @@ We've provided two example files you can use as templates:
 
 - **Missing Required Headers**: Make sure your CSV includes all required columns
 - **Invalid QuestionId**: QuestionId must be a valid integer
-- **Invalid Key Format**: Key must be a single character (A-H)
+- **Invalid Key Format**: Key must only contain characters A-H and be 1-3 characters long
 
 ## Tips for Successful Uploads
 
