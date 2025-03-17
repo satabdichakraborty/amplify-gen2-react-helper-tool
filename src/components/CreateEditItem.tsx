@@ -12,25 +12,12 @@ import TextArea from "@cloudscape-design/components/textarea";
 import Alert from "@cloudscape-design/components/alert";
 import AppLayout from "@cloudscape-design/components/app-layout";
 import Toggle from "@cloudscape-design/components/toggle";
+import Select, { SelectProps } from "@cloudscape-design/components/select";
 import { client } from "../main";
-
-
 
 // Styles for the textarea wrapper
 const textareaWrapperStyle = {
   width: '100%'
-};
-
-// Style for each column in the response section
-const responseColumnStyle = {
-  flex: 1
-};
-
-// Style for the correct answer toggle section
-const toggleContainerStyle = {
-  display: 'flex',
-  alignItems: 'center',
-  marginLeft: 'auto'
 };
 
 // Style for the correct answer label
@@ -38,6 +25,15 @@ const correctLabelStyle = (isCorrect: boolean) => ({
   marginRight: '12px', 
   fontWeight: isCorrect ? 'bold' : 'normal'
 });
+
+// Style for the response container
+const responseHeaderStyle = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  width: '100%',
+  marginBottom: '16px'
+};
 
 export function CreateEditItem() {
   const navigate = useNavigate();
@@ -64,6 +60,7 @@ export function CreateEditItem() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isEditing] = useState<boolean>(!!id);
+  const [selectedAction, setSelectedAction] = useState<SelectProps.Option | null>(null);
 
   useEffect(() => {
     async function fetchItem() {
@@ -242,6 +239,37 @@ export function CreateEditItem() {
     }
   };
 
+  const actionOptions: SelectProps.Options = [
+    { label: "Generate Rational", value: "generate" },
+    { label: "Validate Item", value: "validate" },
+    { label: "Run Item Rules", value: "rules" }
+  ];
+
+  const handleActionChange = ({ detail }: { detail: SelectProps.ChangeDetail }) => {
+    setSelectedAction(detail.selectedOption);
+    
+    // Implement action based on selection
+    if (detail.selectedOption) {
+      switch (detail.selectedOption.value) {
+        case "generate":
+          // TODO: Implement Generate Rational functionality
+          console.log("Generate Rational selected");
+          break;
+        case "validate":
+          // TODO: Implement Validate Item functionality
+          console.log("Validate Item selected");
+          break;
+        case "rules":
+          // TODO: Implement Run Item Rules functionality
+          console.log("Run Item Rules selected");
+          break;
+      }
+    }
+    
+    // Reset selection after action is performed
+    setTimeout(() => setSelectedAction(null), 500);
+  };
+
   // Function to render a response section with consistent styling
   const renderResponseSection = (
     letter: string, 
@@ -249,62 +277,49 @@ export function CreateEditItem() {
     rationaleValue: string, 
     index: number
   ) => {
+    const isCorrectAnswer = correctAnswer === letter;
+
     return (
       <Container>
-        <div>
-          <FormField
-            label={
-              <SpaceBetween direction="horizontal" size="l" alignItems="center">
-                <span style={{ fontWeight: 'bold' }}>Response {letter}</span>
-                <div style={toggleContainerStyle}>
-                  <span style={correctLabelStyle(correctAnswer === letter)}>Correct</span>
-                  <Toggle
-                    checked={correctAnswer === letter}
-                    onChange={({ detail }) => {
-                      if (detail.checked) {
-                        setCorrectAnswer(letter);
-                      }
-                    }}
-                  />
-                </div>
-              </SpaceBetween>
-            }
-            stretch
-          >
-            <div style={{ display: 'flex', gap: '20px', width: '100%' }}>
-              <div style={responseColumnStyle}>
-                <FormField
-                  label="Text"
-                  errorText={error}
-                  stretch
-                >
-                  <div style={textareaWrapperStyle}>
-                    <TextArea
-                      value={responseValue}
-                      onChange={({ detail }) => handleResponseChange(index, 'text', detail.value)}
-                      rows={4}
-                    />
-                  </div>
-                </FormField>
-              </div>
-              <div style={responseColumnStyle}>
-                <FormField
-                  label="Rationale"
-                  errorText={error}
-                  stretch
-                >
-                  <div style={textareaWrapperStyle}>
-                    <TextArea
-                      value={rationaleValue}
-                      onChange={({ detail }) => handleResponseChange(index, 'rationale', detail.value)}
-                      rows={4}
-                    />
-                  </div>
-                </FormField>
-              </div>
+          <div style={responseHeaderStyle}>
+            <span style={{ fontWeight: 'bold' }}>Response {letter}</span>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <span style={correctLabelStyle(isCorrectAnswer)}>Correct</span>
+              <Toggle
+                checked={isCorrectAnswer}
+                onChange={() => setCorrectAnswer(letter)}
+              />
             </div>
-          </FormField>
-        </div>
+          </div>
+          
+          <div style={{ display: 'flex', gap: '20px', width: '100%' }} data-testid="response-container">
+            <div style={{ flex: 1 }} data-testid="text-container">
+              <FormField
+                label="Text"
+                errorText={error}
+                stretch
+              >
+                <TextArea
+                  value={responseValue}
+                  onChange={({ detail }) => handleResponseChange(index, 'text', detail.value)}
+                  rows={4}
+                />
+              </FormField>
+            </div>
+            <div style={{ flex: 1 }} data-testid="rationale-container">
+              <FormField
+                label="Rationale"
+                errorText={error}
+                stretch
+              >
+                <TextArea
+                  value={rationaleValue}
+                  onChange={({ detail }) => handleResponseChange(index, 'rationale', detail.value)}
+                  rows={4}
+                />
+              </FormField>
+            </div>
+          </div>
       </Container>
     );
   };
@@ -352,16 +367,32 @@ export function CreateEditItem() {
                       <SpaceBetween size="l">
                         <Header variant="h2">Basic Information</Header>
                         
-                        <FormField
-                          label="Question ID"
-                          description="A unique identifier for this question"
-                          stretch
-                        >
-                          <Input
-                            value={questionId.toString()}
-                            disabled
-                          />
-                        </FormField>
+                        <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-end' }}>
+                          <div style={{ width: '200px' }}>
+                            <FormField
+                              label="Question ID"
+                              description="A unique identifier for this question"
+                            >
+                              <Input
+                                value={questionId.toString()}
+                                disabled
+                              />
+                            </FormField>
+                          </div>
+                          <div style={{ flex: 1 }}></div>
+                          <div style={{ width: '250px' }}>
+                            <FormField
+                              label="Actions"
+                            >
+                              <Select
+                                selectedOption={selectedAction}
+                                onChange={handleActionChange}
+                                options={actionOptions}
+                                placeholder="Select an action"
+                              />
+                            </FormField>
+                          </div>
+                        </div>
 
                         <FormField
                           label="Question"

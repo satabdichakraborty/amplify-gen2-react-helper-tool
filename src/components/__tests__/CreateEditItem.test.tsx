@@ -182,21 +182,25 @@ describe('CreateEditItem', () => {
     expect(screen.getByText('Create New Item')).toBeInTheDocument();
     
     // Find the response container elements
-    const responseContainers = document.querySelectorAll('div[style*="display: flex"][style*="gap: 20px"]');
+    const responseContainers = document.querySelectorAll('div[data-testid="response-container"]');
     
     // Verify that we have at least one response container with flex layout
     expect(responseContainers.length).toBeGreaterThan(0);
     
     // For each response container, verify it has two child divs with flex: 1
     responseContainers.forEach(container => {
-      const flexChildren = container.querySelectorAll('div[style*="flex: 1"]');
-      expect(flexChildren.length).toBe(2);
+      const textContainer = container.querySelector('div[data-testid="text-container"]');
+      const rationaleContainer = container.querySelector('div[data-testid="rationale-container"]');
+      
+      // Verify both containers exist
+      expect(textContainer).not.toBeNull();
+      expect(rationaleContainer).not.toBeNull();
       
       // First child should contain Text field
-      expect(flexChildren[0].textContent).toContain('Text');
+      expect(textContainer!.textContent).toContain('Text');
       
       // Second child should contain Rationale field
-      expect(flexChildren[1].textContent).toContain('Rationale');
+      expect(rationaleContainer!.textContent).toContain('Rationale');
     });
   });
 });
