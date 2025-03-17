@@ -5,7 +5,7 @@ import { CreateEditItem } from '../CreateEditItem';
 import { client } from '../../main';
 import { vi } from 'vitest';
 
-// Mock the client
+// Mock the client and graphql operations
 vi.mock('../../main', () => ({
   client: {
     models: {
@@ -44,7 +44,13 @@ vi.mock('../../main', () => ({
           }
         }),
         list: vi.fn().mockResolvedValue({
-          data: []
+          data: [{
+            QuestionId: 123,
+            CreatedDate: '2023-01-01',
+            Question: 'Existing question',
+            Type: 'MCQ',
+            Status: 'Draft'
+          }]
         }),
         get: vi.fn().mockResolvedValue({
           data: {
@@ -76,6 +82,17 @@ vi.mock('../../main', () => ({
       }
     }
   }
+}));
+
+// Also mock the listItems function
+vi.mock('../../graphql/operations', () => ({
+  listItems: vi.fn().mockResolvedValue([{
+    QuestionId: 123,
+    CreatedDate: '2023-01-01',
+    Question: 'Existing question',
+    Type: 'MCQ',
+    Status: 'Draft'
+  }])
 }));
 
 // Helper function to render with router
