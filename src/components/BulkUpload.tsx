@@ -28,10 +28,10 @@ interface CSVRow {
   responseF?: string;
   responseG?: string;
   responseH?: string;
-  rationaleA: string;
-  rationaleB: string;
-  rationaleC: string;
-  rationaleD: string;
+  rationaleA?: string;
+  rationaleB?: string;
+  rationaleC?: string;
+  rationaleD?: string;
   rationaleE?: string;
   rationaleF?: string;
   rationaleG?: string;
@@ -87,8 +87,7 @@ const expectedHeaders = [
 // Define required headers
 const requiredHeaders = [
   'QuestionId', 'CreatedDate', 'Question', 
-  'responseA', 'responseB', 'responseC', 'responseD', 
-  'rationaleA', 'rationaleB', 'rationaleC', 'rationaleD'
+  'responseA', 'responseB', 'responseC', 'responseD'
 ];
 
 interface BatchResult {
@@ -317,10 +316,10 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
               responseF: row.responseF || '',
               responseG: row.responseG || '',
               responseH: row.responseH || '',
-              rationaleA: row.rationaleA,
-              rationaleB: row.rationaleB,
-              rationaleC: row.rationaleC,
-              rationaleD: row.rationaleD,
+              rationaleA: row.rationaleA || '',
+              rationaleB: row.rationaleB || '',
+              rationaleC: row.rationaleC || '',
+              rationaleD: row.rationaleD || '',
               rationaleE: row.rationaleE || '',
               rationaleF: row.rationaleF || '',
               rationaleG: row.rationaleG || '',
@@ -464,8 +463,8 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
           <h4>File format requirements:</h4>
           <ul>
             <li>CSV file with headers</li>
-            <li>Required fields: QuestionId, CreatedDate, Question, responseA-D, rationaleA-D</li>
-            <li>Optional fields: responseE-H, rationaleE-H, Key, Type, Status, Topic, KnowledgeSkills, Tags</li>
+            <li>Required fields: QuestionId, CreatedDate, Question, responseA-D</li>
+            <li>Optional fields: rationaleA-H, responseE-H, Key, Type, Status, Topic, KnowledgeSkills, Tags</li>
             <li>Dates must be in YYYY-MM-DD format</li>
             <li>Key should be a single character (A-H) representing the correct answer</li>
           </ul>

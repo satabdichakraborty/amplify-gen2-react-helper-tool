@@ -427,4 +427,58 @@ describe('BulkUpload', () => {
       expect(alert).toHaveTextContent('responseA');
     });
   });
+
+  it('handles CSV upload without rationale fields', async () => {
+    render(
+      <BulkUpload
+        visible={true}
+        onDismiss={mockOnDismiss}
+        onUploadComplete={mockOnUploadComplete}
+      />
+    );
+
+    // Create a test CSV file with only required fields
+    const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,Key
+123,2023-01-01,Test question without rationales,MCQ,Active,Option A,Option B,Option C,Option D,A`;
+    
+    const file = new File([csvContent], 'test.csv', { type: 'text/csv' });
+    // Add toString method for tests
+    Object.defineProperty(file, 'toString', {
+      value: function() { return csvContent; }
+    });
+    
+    // Select the file
+    const fileInput = screen.getByLabelText('Choose file');
+    await userEvent.upload(fileInput, file);
+    
+    // Click upload button
+    const uploadButton = screen.getByRole('button', { name: /Upload/i });
+    await userEvent.click(uploadButton);
+    
+    // Verify createItem was called with correct data and empty strings for rationales
+    await waitFor(() => {
+      expect(createItem).toHaveBeenCalledWith(expect.objectContaining({
+        QuestionId: 123,
+        CreatedDate: '2023-01-01',
+        Question: 'Test question without rationales',
+        Type: 'MCQ',
+        Status: 'Active',
+        responseA: 'Option A',
+        responseB: 'Option B',
+        responseC: 'Option C',
+        responseD: 'Option D',
+        rationaleA: '',
+        rationaleB: '',
+        rationaleC: '',
+        rationaleD: '',
+        Key: 'A'
+      }));
+    });
+    
+    // Verify success message and callback
+    await waitFor(() => {
+      expect(screen.getByText(/Successfully uploaded 1 item/i)).toBeInTheDocument();
+      expect(mockOnUploadComplete).toHaveBeenCalled();
+    });
+  });
 }); 

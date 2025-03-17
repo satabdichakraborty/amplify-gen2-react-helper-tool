@@ -10,13 +10,13 @@ const schema = a.schema({
       CreatedDate: a.string().required(), // Sort key
       Question: a.string().required(),    // The question text
       responseA: a.string().required(),   // Option A text
-      rationaleA: a.string().required(),  // Explanation for option A
+      rationaleA: a.string(),             // Explanation for option A (Optional)
       responseB: a.string().required(),   // Option B text
-      rationaleB: a.string().required(),  // Explanation for option B
+      rationaleB: a.string(),             // Explanation for option B (Optional)
       responseC: a.string().required(),   // Option C text
-      rationaleC: a.string().required(),  // Explanation for option C
+      rationaleC: a.string(),             // Explanation for option C (Optional)
       responseD: a.string().required(),   // Option D text
-      rationaleD: a.string().required(),  // Explanation for option D
+      rationaleD: a.string(),             // Explanation for option D (Optional)
       responseE: a.string(),              // Option E text (Optional)
       responseF: a.string(),              // Option F text (Optional)
       responseG: a.string(),              // Option G text (Optional)

@@ -1,0 +1,2 @@
+QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,Key
+1001,2024-06-01,What is the capital of France?,MCQ,Active,Paris,London,Berlin,Madrid,A 
