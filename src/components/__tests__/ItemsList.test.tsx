@@ -23,9 +23,9 @@ describe('ItemsList', () => {
   const mockNavigate = vi.fn();
   const mockItems = [
     {
-      QuestionId: 123,
+      QuestionId: 1001,
       CreatedDate: '2023-01-01',
-      Question: 'Test question 1',
+      Question: 'Question 1',
       responseA: 'A1',
       rationaleA: 'RA1',
       responseB: 'B1',
@@ -36,12 +36,13 @@ describe('ItemsList', () => {
       rationaleD: 'RD1',
       Rationale: 'A',
       Type: 'MCQ',
-      Status: 'Active'
+      Status: 'Active',
+      CreatedBy: 'system'
     },
     {
-      QuestionId: 456,
+      QuestionId: 1002,
       CreatedDate: '2023-01-02',
-      Question: 'Test question 2',
+      Question: 'Question 2',
       responseA: 'A2',
       rationaleA: 'RA2',
       responseB: 'B2',
@@ -52,7 +53,8 @@ describe('ItemsList', () => {
       rationaleD: 'RD2',
       Rationale: 'B',
       Type: 'MCQ',
-      Status: 'Draft'
+      Status: 'Draft',
+      CreatedBy: 'system'
     }
   ];
 
@@ -71,10 +73,10 @@ describe('ItemsList', () => {
 
     // Wait for items to load
     await waitFor(() => {
-      expect(screen.getByText('Test question 1')).toBeInTheDocument();
+      expect(screen.getByText('Question 1')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('Test question 2')).toBeInTheDocument();
+    expect(screen.getByText('Question 2')).toBeInTheDocument();
     
     // Get all buttons in the table rows
     const tableRows = screen.getAllByRole('row');
@@ -94,7 +96,7 @@ describe('ItemsList', () => {
 
     // Wait for items to load
     await waitFor(() => {
-      expect(screen.getByText('Test question 1')).toBeInTheDocument();
+      expect(screen.getByText('Question 1')).toBeInTheDocument();
     });
 
     // Click the first edit button in the table
@@ -102,7 +104,7 @@ describe('ItemsList', () => {
     const editButton = within(tableRows[1]).getByRole('button', { name: 'Edit' });
     fireEvent.click(editButton);
 
-    expect(mockNavigate).toHaveBeenCalledWith('/items/123/edit');
+    expect(mockNavigate).toHaveBeenCalledWith('/items/1001/edit');
   });
 
   it('shows delete confirmation modal when delete button is clicked', async () => {
@@ -114,7 +116,7 @@ describe('ItemsList', () => {
 
     // Wait for items to load
     await waitFor(() => {
-      expect(screen.getByText('Test question 1')).toBeInTheDocument();
+      expect(screen.getByText('Question 1')).toBeInTheDocument();
     });
 
     // Click the first delete button in the table
@@ -135,7 +137,7 @@ describe('ItemsList', () => {
 
     // Wait for items to load
     await waitFor(() => {
-      expect(screen.getByText('Test question 1')).toBeInTheDocument();
+      expect(screen.getByText('Question 1')).toBeInTheDocument();
     });
 
     // Click the first delete button in the table
@@ -150,7 +152,7 @@ describe('ItemsList', () => {
 
     // Verify deleteItem was called with correct parameters
     await waitFor(() => {
-      expect(deleteItem).toHaveBeenCalledWith(123, '2023-01-01');
+      expect(deleteItem).toHaveBeenCalledWith(1001, '2023-01-01');
     });
 
     // Verify listItems was called again to refresh the list
@@ -168,7 +170,7 @@ describe('ItemsList', () => {
 
     // Wait for items to load
     await waitFor(() => {
-      expect(screen.getByText('Test question 1')).toBeInTheDocument();
+      expect(screen.getByText('Question 1')).toBeInTheDocument();
     });
 
     // Click the first delete button in the table
@@ -196,7 +198,7 @@ describe('ItemsList', () => {
 
     // Wait for items to load
     await waitFor(() => {
-      expect(screen.getByText('Test question 1')).toBeInTheDocument();
+      expect(screen.getByText('Question 1')).toBeInTheDocument();
     });
 
     // Click the first delete button in the table
@@ -224,7 +226,7 @@ describe('ItemsList', () => {
 
     // Wait for items to load
     await waitFor(() => {
-      expect(screen.getByText('Test question 1')).toBeInTheDocument();
+      expect(screen.getByText('Question 1')).toBeInTheDocument();
     });
 
     // Verify there is exactly one Add new item button

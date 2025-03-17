@@ -32,6 +32,7 @@ const schema = a.schema({
       Tags: a.string(),                   // Tags for searching/filtering
       Type: a.string(),                   // Question type (MCQ, etc.)
       Status: a.string(),                 // Status (Draft, Active, etc.)
+      CreatedBy: a.string(),              // User who created the item
       createdAt: a.datetime(),
       updatedAt: a.datetime()
     })

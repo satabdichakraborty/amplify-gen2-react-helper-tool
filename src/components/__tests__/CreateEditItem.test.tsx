@@ -23,7 +23,8 @@ vi.mock('../../main', () => ({
             rationaleB: 'Rationale B',
             rationaleC: 'Rationale C',
             rationaleD: 'Rationale D',
-            Key: 'A'
+            Key: 'A',
+            CreatedBy: 'system'
           }
         }),
         update: vi.fn().mockResolvedValue({
@@ -38,7 +39,8 @@ vi.mock('../../main', () => ({
             rationaleA: 'Updated Rationale A',
             rationaleB: 'Updated Rationale B',
             rationaleC: 'Updated Rationale C',
-            rationaleD: 'Updated Rationale D'
+            rationaleD: 'Updated Rationale D',
+            CreatedBy: 'system'
           }
         }),
         list: vi.fn().mockResolvedValue({
@@ -67,7 +69,8 @@ vi.mock('../../main', () => ({
             KnowledgeSkills: 'Test Skills',
             Tags: 'test,tags',
             Type: 'MCQ',
-            Status: 'Draft'
+            Status: 'Draft',
+            CreatedBy: 'system'
           }
         })
       }

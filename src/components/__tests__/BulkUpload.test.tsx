@@ -11,7 +11,8 @@ vi.mock('../../graphql/operations', () => ({
     CreatedDate: '2023-01-01',
     Question: 'Test question',
     Type: 'MCQ',
-    Status: 'Active'
+    Status: 'Active',
+    CreatedBy: 'system'
   })
 }));
 

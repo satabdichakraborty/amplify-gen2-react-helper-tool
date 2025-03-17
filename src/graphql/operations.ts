@@ -10,7 +10,7 @@ export type Item = {
   Key?: string;
   Notes?: string;
   Rationale: string;
-  CreatedBy?: string;
+  CreatedBy: string;
   responseA: string;
   rationaleA: string;
   responseB: string;
