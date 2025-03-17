@@ -142,7 +142,7 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
       
       // Validate QuestionId is a valid integer
       if (isNaN(parseInt(row.QuestionId, 10))) {
-        return `Row ${i + 1}: QuestionId must be a valid integer`;
+        return `Row ${i + 1}: QuestionId must be a valid integer. Received: "${row.QuestionId}"`;
       }
       
       // Validate CreatedDate is not empty
@@ -153,15 +153,43 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
       // Validate Key if provided (should be 1-3 characters consisting of A-H)
       if (row.Key && row.Key.trim()) {
         const key = row.Key.trim().toUpperCase();
-        if (key.length > 3) {
-          return `Row ${i + 1}: Key must be 1-3 characters long`;
+        if (key.length < 1 || key.length > 3) {
+          return `Row ${i + 1}: Key must be 1-3 characters long. Received: "${key}" (${key.length} characters)`;
         }
         
         // Check if all characters in the key are valid (A-H)
+        const invalidChars = [];
         for (const char of key) {
           if (!['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].includes(char)) {
-            return `Row ${i + 1}: Key can only contain characters A-H`;
+            invalidChars.push(char);
           }
+        }
+        
+        if (invalidChars.length > 0) {
+          return `Row ${i + 1}: Key can only contain characters A-H. Received: "${key}" with invalid characters: "${invalidChars.join(', ')}"`;
+        }
+        
+        // For MCQ, ensure exactly one character is provided
+        if (row.Type === 'MCQ' && key.length !== 1) {
+          return `Row ${i + 1}: MCQ questions must have exactly 1 correct answer in Key. Received: "${key}" (${key.length} characters)`;
+        }
+        
+        // Validate that the Key refers to actual options that exist
+        const responseOptions = ['responseA', 'responseB', 'responseC', 'responseD', 'responseE', 'responseF', 'responseG', 'responseH'];
+        const missingOptions = [];
+        
+        for (const char of key) {
+          const responseIndex = char.charCodeAt(0) - 65; // 'A' = 0, 'B' = 1, etc.
+          if (responseIndex >= 0 && responseIndex < responseOptions.length) {
+            const optionKey = responseOptions[responseIndex] as keyof CSVRow;
+            if (!row[optionKey] || row[optionKey].trim() === '') {
+              missingOptions.push(char);
+            }
+          }
+        }
+        
+        if (missingOptions.length > 0) {
+          return `Row ${i + 1}: Key "${key}" refers to missing response options: ${missingOptions.join(', ')}. Please ensure all referenced options have content.`;
         }
       }
       

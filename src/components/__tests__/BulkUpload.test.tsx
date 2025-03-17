@@ -266,7 +266,7 @@ describe('BulkUpload', () => {
     // Verify error message
     await waitFor(() => {
       const alert = screen.getByRole('alert');
-      expect(alert).toHaveTextContent('Key can only contain characters A-H');
+      expect(alert).toHaveTextContent('Key can only contain characters A-H. Received: "X" with invalid characters: "X"');
     });
   });
 
@@ -639,7 +639,41 @@ describe('BulkUpload', () => {
     // Verify error message
     await waitFor(() => {
       const alert = screen.getByRole('alert');
-      expect(alert).toHaveTextContent('Key must be 1-3 characters long');
+      expect(alert).toHaveTextContent('Key must be 1-3 characters long. Received: "ABCD" (4 characters)');
+    });
+  });
+
+  it('rejects key referencing missing response options', async () => {
+    render(
+      <BulkUpload
+        visible={true}
+        onDismiss={mockOnDismiss}
+        onUploadComplete={mockOnUploadComplete}
+      />
+    );
+
+    // Create a CSV file with a key that refers to a missing response
+    const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,Key
+123,2023-01-01,Test question,MCQ,Active,Option A,,C`;
+    
+    const file = new File([csvContent], 'invalid.csv', { type: 'text/csv' });
+    // Add toString method for tests
+    Object.defineProperty(file, 'toString', {
+      value: function() { return csvContent; }
+    });
+    
+    // Select the file
+    const fileInput = screen.getByLabelText('Choose file');
+    await userEvent.upload(fileInput, file);
+    
+    // Click upload button
+    const uploadButton = screen.getByRole('button', { name: /Upload/i });
+    await userEvent.click(uploadButton);
+    
+    // Verify error message
+    await waitFor(() => {
+      const alert = screen.getByRole('alert');
+      expect(alert).toHaveTextContent('Key "C" refers to missing response options: C');
     });
   });
 }); 
