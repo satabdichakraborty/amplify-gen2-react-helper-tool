@@ -30,13 +30,15 @@ const responseColumnStyle = {
 const toggleContainerStyle = {
   marginLeft: 'auto', 
   display: 'flex', 
-  alignItems: 'center'
+  alignItems: 'right',
+  marginRight: '20px'
 };
 
 // Style for the correct answer label
 const correctLabelStyle = (isCorrect: boolean) => ({
   marginRight: '12px', 
-  fontWeight: isCorrect ? 'bold' : 'normal'
+  fontWeight: isCorrect ? 'bold' : 'normal',
+  border: '1px solid green'
 });
 
 export function CreateEditItem() {
@@ -254,7 +256,7 @@ export function CreateEditItem() {
         <div>
           <FormField
             label={
-              <SpaceBetween direction="horizontal" size="xs" alignItems="center">
+              <SpaceBetween direction="horizontal" size="l" alignItems="center">
                 <span style={{ fontWeight: 'bold' }}>Response {letter}</span>
                 <div style={toggleContainerStyle}>
                   <span style={correctLabelStyle(correctAnswer === letter)}>Correct</span>
