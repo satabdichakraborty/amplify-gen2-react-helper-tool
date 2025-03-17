@@ -23,6 +23,10 @@ export type Item = {
   rationaleE?: string;
   responseF?: string;
   rationaleF?: string;
+  responseG?: string;
+  rationaleG?: string;
+  responseH?: string;
+  rationaleH?: string;
   Topic?: string;
   KnowledgeSkills?: string;
   Tags?: string;
@@ -72,8 +76,12 @@ export async function createItem(item: Partial<Item>): Promise<Item> {
       // Ensure empty strings for optional string fields instead of undefined
       responseE: item.responseE || '',
       responseF: item.responseF || '',
+      responseG: item.responseG || '',
+      responseH: item.responseH || '',
       rationaleE: item.rationaleE || '',
       rationaleF: item.rationaleF || '',
+      rationaleG: item.rationaleG || '',
+      rationaleH: item.rationaleH || '',
       Tags: item.Tags || '',
       Rationale: item.Rationale || '',
       // Ensure Type and Status have values

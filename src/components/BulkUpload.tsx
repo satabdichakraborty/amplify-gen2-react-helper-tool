@@ -26,12 +26,16 @@ interface CSVRow {
   responseD: string;
   responseE?: string;
   responseF?: string;
+  responseG?: string;
+  responseH?: string;
   rationaleA: string;
   rationaleB: string;
   rationaleC: string;
   rationaleD: string;
   rationaleE?: string;
   rationaleF?: string;
+  rationaleG?: string;
+  rationaleH?: string;
   Key?: string;
   Rationale?: string;
   Topic?: string;
@@ -53,12 +57,16 @@ const headerMapping: Record<string, keyof CSVRow> = {
   'responsed': 'responseD',
   'responsee': 'responseE',
   'responsef': 'responseF',
+  'responseg': 'responseG',
+  'responseh': 'responseH',
   'rationalea': 'rationaleA',
   'rationaleb': 'rationaleB',
   'rationalec': 'rationaleC',
   'rationaled': 'rationaleD',
   'rationalee': 'rationaleE',
   'rationalef': 'rationaleF',
+  'rationaleg': 'rationaleG',
+  'rationaleh': 'rationaleH',
   'key': 'Key',
   'rationale': 'Rationale',
   'topic': 'Topic',
@@ -67,6 +75,21 @@ const headerMapping: Record<string, keyof CSVRow> = {
   'type': 'Type',
   'status': 'Status'
 };
+
+// Define the expected headers
+const expectedHeaders = [
+  'QuestionId', 'CreatedDate', 'Question', 'Type', 'Status',
+  'responseA', 'responseB', 'responseC', 'responseD', 'responseE', 'responseF', 'responseG', 'responseH',
+  'rationaleA', 'rationaleB', 'rationaleC', 'rationaleD', 'rationaleE', 'rationaleF', 'rationaleG', 'rationaleH',
+  'Key', 'Rationale', 'Topic', 'KnowledgeSkills', 'Tags'
+];
+
+// Define required headers
+const requiredHeaders = [
+  'QuestionId', 'CreatedDate', 'Question', 
+  'responseA', 'responseB', 'responseC', 'responseD', 
+  'rationaleA', 'rationaleB', 'rationaleC', 'rationaleD'
+];
 
 interface BatchResult {
   success: boolean;
@@ -81,20 +104,38 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
   const [success, setSuccess] = useState(false);
   const [uploadedCount, setUploadedCount] = useState(0);
 
-  function validateCSV(rows: CSVRow[]): string | null {
+  function validateCSV(rows: CSVRow[], rawHeaders: string[]): string | null {
     if (rows.length === 0) {
       return 'CSV file is empty';
     }
 
-    const requiredFields = ['QuestionId', 'CreatedDate', 'Question', 
-      'responseA', 'responseB', 'responseC', 'responseD', 
-      'rationaleA', 'rationaleB', 'rationaleC', 'rationaleD'];
+    // Check for missing required headers
+    const normalizedHeaders = rawHeaders.map(h => h.toLowerCase());
+    const missingRequiredHeaders = requiredHeaders.filter(header => {
+      const lowerHeader = header.toLowerCase();
+      
+      // Check if the raw header exists as-is or via the mapping
+      const headerExists = normalizedHeaders.some(h => {
+        // Direct match with lowercase header
+        if (h === lowerHeader) return true;
+        
+        // Check if this normalized header maps to our required header
+        const mappedHeader = headerMapping[h];
+        return mappedHeader === header;
+      });
+      
+      return !headerExists;
+    });
+
+    if (missingRequiredHeaders.length > 0) {
+      return `Missing required headers: ${missingRequiredHeaders.join(', ')}\n\nActual Headers: ${rawHeaders.join(', ')}\n\nExpected Headers: ${expectedHeaders.join(', ')}`;
+    }
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       
       // Check for missing required fields
-      for (const field of requiredFields) {
+      for (const field of requiredHeaders) {
         if (!row[field as keyof CSVRow]) {
           return `Row ${i + 1}: Missing required field "${field}"`;
         }
@@ -106,24 +147,26 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
       }
       
       // Validate CreatedDate format (YYYY-MM-DD)
-      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-      if (!dateRegex.test(row.CreatedDate)) {
-        return `Row ${i + 1}: CreatedDate must be in YYYY-MM-DD format`;
+      if (row.CreatedDate) {
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(row.CreatedDate)) {
+          return `Row ${i + 1}: CreatedDate must be in YYYY-MM-DD format`;
+        }
       }
 
-      // Validate Key if provided (should be a single character A-F)
+      // Validate Key if provided (should be a single character A-H)
       if (row.Key && row.Key.trim()) {
         const keyChar = row.Key.trim().charAt(0).toUpperCase();
-        if (!['A', 'B', 'C', 'D', 'E', 'F'].includes(keyChar)) {
-          return `Row ${i + 1}: Key must be a single character (A-F) representing the correct answer`;
+        if (!['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].includes(keyChar)) {
+          return `Row ${i + 1}: Key must be a single character (A-H) representing the correct answer`;
         }
       }
       
       // For backward compatibility, also check Rationale field
       if (!row.Key && row.Rationale && row.Rationale.trim()) {
         const firstChar = row.Rationale.trim().charAt(0).toUpperCase();
-        if (!['A', 'B', 'C', 'D', 'E', 'F'].includes(firstChar)) {
-          return `Row ${i + 1}: Rationale must be a single character (A-F) representing the correct answer if Key is not provided`;
+        if (!['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].includes(firstChar)) {
+          return `Row ${i + 1}: Rationale must be a single character (A-H) representing the correct answer if Key is not provided`;
         }
       }
     }
@@ -131,9 +174,9 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
     return null;
   }
 
-  function parseCSV(text: string): CSVRow[] {
+  function parseCSV(text: string): { rows: CSVRow[], rawHeaders: string[] } {
     const lines = text.split('\n');
-    if (lines.length === 0) return [];
+    if (lines.length === 0) return { rows: [], rawHeaders: [] };
     
     // Handle potential BOM character at the beginning of the file
     let firstLine = lines[0];
@@ -141,7 +184,7 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
       firstLine = firstLine.slice(1);
     }
     
-    // Parse headers, handling potential quotes and making them case-insensitive
+    // Parse headers, handling potential quotes
     const rawHeaders = firstLine.split(',').map(h => {
       const trimmed = h.trim();
       // Remove quotes if present
@@ -157,6 +200,7 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
     });
     
     console.log('CSV Headers (normalized):', headers);
+    console.log('Raw CSV Headers:', rawHeaders);
     
     const rows: CSVRow[] = [];
 
@@ -194,7 +238,7 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
       rows.push(row);
     }
 
-    return rows;
+    return { rows, rawHeaders };
   }
 
   async function handleUpload() {
@@ -220,7 +264,7 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
         return;
       }
       
-      const rows = parseCSV(text);
+      const { rows, rawHeaders } = parseCSV(text);
       console.log(`Parsed ${rows.length} rows from CSV`);
       
       if (rows.length === 0) {
@@ -228,7 +272,7 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
         return;
       }
 
-      const validationError = validateCSV(rows);
+      const validationError = validateCSV(rows, rawHeaders);
       if (validationError) {
         console.error('CSV validation error:', validationError);
         setError(validationError);
@@ -254,7 +298,7 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
             // For backward compatibility, use Rationale if Key is not provided
             if (!correctAnswerKey && row.Rationale) {
               const firstChar = row.Rationale.trim().charAt(0).toUpperCase();
-              if (['A', 'B', 'C', 'D', 'E', 'F'].includes(firstChar)) {
+              if (['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].includes(firstChar)) {
                 correctAnswerKey = firstChar;
               }
             }
@@ -271,12 +315,16 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
               responseD: row.responseD,
               responseE: row.responseE || '',
               responseF: row.responseF || '',
+              responseG: row.responseG || '',
+              responseH: row.responseH || '',
               rationaleA: row.rationaleA,
               rationaleB: row.rationaleB,
               rationaleC: row.rationaleC,
               rationaleD: row.rationaleD,
               rationaleE: row.rationaleE || '',
               rationaleF: row.rationaleF || '',
+              rationaleG: row.rationaleG || '',
+              rationaleH: row.rationaleH || '',
               Key: correctAnswerKey,
               Rationale: row.Rationale || '',
               Topic: row.Topic || '',
@@ -417,9 +465,9 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
           <ul>
             <li>CSV file with headers</li>
             <li>Required fields: QuestionId, CreatedDate, Question, responseA-D, rationaleA-D</li>
-            <li>Optional fields: responseE, responseF, rationaleE, rationaleF, Key, Type, Status, Topic, KnowledgeSkills, Tags</li>
+            <li>Optional fields: responseE-H, rationaleE-H, Key, Type, Status, Topic, KnowledgeSkills, Tags</li>
             <li>Dates must be in YYYY-MM-DD format</li>
-            <li>Key should be a single character (A-F) representing the correct answer</li>
+            <li>Key should be a single character (A-H) representing the correct answer</li>
           </ul>
         </TextContent>
       </SpaceBetween>

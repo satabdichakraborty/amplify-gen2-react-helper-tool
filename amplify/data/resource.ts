@@ -19,9 +19,13 @@ const schema = a.schema({
       rationaleD: a.string().required(),  // Explanation for option D
       responseE: a.string(),              // Option E text (Optional)
       responseF: a.string(),              // Option F text (Optional)
+      responseG: a.string(),              // Option G text (Optional)
+      responseH: a.string(),              // Option H text (Optional)
       rationaleE: a.string(),             // Explanation for option E (Optional)
       rationaleF: a.string(),             // Explanation for option F (Optional)
-      Key: a.string(),                    // Correct answer (A, B, C, D, E, or F)
+      rationaleG: a.string(),             // Explanation for option G (Optional)
+      rationaleH: a.string(),             // Explanation for option H (Optional)
+      Key: a.string(),                    // Correct answer (A, B, C, D, E, F, G, or H)
       Rationale: a.string(),              // General rationale for the question
       Topic: a.string(),                  // Topic category
       KnowledgeSkills: a.string(),        // Knowledge/skills tested

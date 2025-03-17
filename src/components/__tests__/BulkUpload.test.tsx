@@ -176,7 +176,9 @@ describe('BulkUpload', () => {
     // Verify error message
     await waitFor(() => {
       const alert = screen.getByRole('alert');
-      expect(alert).toHaveTextContent('Row 1: Missing required field "CreatedDate"');
+      expect(alert).toHaveTextContent('Missing required headers: CreatedDate');
+      expect(alert).toHaveTextContent('Actual Headers:');
+      expect(alert).toHaveTextContent('Expected Headers:');
     });
   });
 
@@ -264,7 +266,7 @@ describe('BulkUpload', () => {
     // Verify error message
     await waitFor(() => {
       const alert = screen.getByRole('alert');
-      expect(alert).toHaveTextContent('Row 1: Key must be a single character (A-F) representing the correct answer');
+      expect(alert).toHaveTextContent('Row 1: Key must be a single character (A-H) representing the correct answer');
     });
   });
 
@@ -320,6 +322,109 @@ describe('BulkUpload', () => {
     await waitFor(() => {
       expect(screen.getByText(/Successfully uploaded 1 item/i)).toBeInTheDocument();
       expect(mockOnUploadComplete).toHaveBeenCalled();
+    });
+  });
+
+  it('handles CSV upload with responses G and H', async () => {
+    render(
+      <BulkUpload
+        visible={true}
+        onDismiss={mockOnDismiss}
+        onUploadComplete={mockOnUploadComplete}
+      />
+    );
+
+    // Create a test CSV file with all responses A-H
+    const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,responseE,responseF,responseG,responseH,rationaleA,rationaleB,rationaleC,rationaleD,rationaleE,rationaleF,rationaleG,rationaleH,Key,Rationale
+123,2023-01-01,Test question with 8 options,MCQ,Active,Option A,Option B,Option C,Option D,Option E,Option F,Option G,Option H,Rationale A,Rationale B,Rationale C,Rationale D,Rationale E,Rationale F,Rationale G,Rationale H,G,This is a more complex question`;
+    
+    const file = new File([csvContent], 'test.csv', { type: 'text/csv' });
+    // Add toString method for tests
+    Object.defineProperty(file, 'toString', {
+      value: function() { return csvContent; }
+    });
+    
+    // Select the file
+    const fileInput = screen.getByLabelText('Choose file');
+    await userEvent.upload(fileInput, file);
+    
+    // Click upload button
+    const uploadButton = screen.getByRole('button', { name: /Upload/i });
+    await userEvent.click(uploadButton);
+    
+    // Verify createItem was called with correct data
+    await waitFor(() => {
+      expect(createItem).toHaveBeenCalledWith(expect.objectContaining({
+        QuestionId: 123,
+        CreatedDate: '2023-01-01',
+        Question: 'Test question with 8 options',
+        Type: 'MCQ',
+        Status: 'Active',
+        responseA: 'Option A',
+        responseB: 'Option B',
+        responseC: 'Option C',
+        responseD: 'Option D',
+        responseE: 'Option E',
+        responseF: 'Option F',
+        responseG: 'Option G',
+        responseH: 'Option H',
+        rationaleA: 'Rationale A',
+        rationaleB: 'Rationale B',
+        rationaleC: 'Rationale C',
+        rationaleD: 'Rationale D',
+        rationaleE: 'Rationale E',
+        rationaleF: 'Rationale F',
+        rationaleG: 'Rationale G',
+        rationaleH: 'Rationale H',
+        Key: 'G',
+        Rationale: 'This is a more complex question'
+      }));
+    });
+    
+    // Verify success message and callback
+    await waitFor(() => {
+      expect(screen.getByText(/Successfully uploaded 1 item/i)).toBeInTheDocument();
+      expect(mockOnUploadComplete).toHaveBeenCalled();
+    });
+  });
+
+  it('displays detailed error message for header mismatch', async () => {
+    render(
+      <BulkUpload
+        visible={true}
+        onDismiss={mockOnDismiss}
+        onUploadComplete={mockOnUploadComplete}
+      />
+    );
+
+    // Create a test CSV file with incorrect headers
+    const csvContent = `Id,Created,Question,Type,Status,A,B,C,D,ExplanationA,ExplanationB,ExplanationC,ExplanationD,CorrectAnswer
+123,2023-01-01,Test question,MCQ,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,A`;
+    
+    const file = new File([csvContent], 'test.csv', { type: 'text/csv' });
+    // Add toString method for tests
+    Object.defineProperty(file, 'toString', {
+      value: function() { return csvContent; }
+    });
+    
+    // Select the file
+    const fileInput = screen.getByLabelText('Choose file');
+    await userEvent.upload(fileInput, file);
+    
+    // Click upload button
+    const uploadButton = screen.getByRole('button', { name: /Upload/i });
+    await userEvent.click(uploadButton);
+    
+    // Verify error message shows header mismatch details
+    await waitFor(() => {
+      const alert = screen.getByRole('alert');
+      expect(alert).toHaveTextContent('Missing required headers');
+      expect(alert).toHaveTextContent('Actual Headers');
+      expect(alert).toHaveTextContent('Expected Headers');
+      // Check that it lists the problematic headers
+      expect(alert).toHaveTextContent('QuestionId');
+      expect(alert).toHaveTextContent('CreatedDate');
+      expect(alert).toHaveTextContent('responseA');
     });
   });
 }); 
