@@ -15,6 +15,7 @@ import Toggle from "@cloudscape-design/components/toggle";
 import Select, { SelectProps } from "@cloudscape-design/components/select";
 import Checkbox from "@cloudscape-design/components/checkbox";
 import { client } from "../main";
+import { listItems } from '../graphql/operations';
 
 // Styles for the textarea wrapper
 const textareaWrapperStyle = {
@@ -66,13 +67,45 @@ export function CreateEditItem() {
   useEffect(() => {
     async function fetchItem() {
       if (id) {
+        console.log('Fetching item with ID:', id);
         try {
           setLoading(true);
+          
+          // First, query the items list to find the correct item and its createdDate
+          const items = await listItems();
+          console.log('Items list response:', items);
+          
+          if (!Array.isArray(items) || items.length === 0) {
+            console.error('No items found in the database or invalid response');
+            setError('Failed to load items list');
+            setLoading(false);
+            return;
+          }
+          
+          // Find the item with matching ID
+          const targetItem = items.find(item => 
+            item.QuestionId === parseInt(id, 10)
+          );
+          
+          if (!targetItem) {
+            console.error('Item with ID', id, 'not found in the database');
+            setError(`Item with ID ${id} not found`);
+            setLoading(false);
+            return;
+          }
+          
+          console.log('Found matching item:', targetItem);
+          
+          // Now get the full item details using the correct ID and createdDate
           const item = await client.models.Item.get({
             QuestionId: parseInt(id, 10),
-            CreatedDate: createdDate
+            CreatedDate: targetItem.CreatedDate
           });
+          
+          console.log('Item fetch response:', item);
+          
           if (item?.data) {
+            console.log('Item data found, populating form fields with:', item.data);
             setQuestionId(item.data.QuestionId);
             setCreatedDate(item.data.CreatedDate);
             setQuestion(item.data.Question);
@@ -118,6 +151,9 @@ export function CreateEditItem() {
             
             setRationale(item.data.Rationale || '');
             setStatus(item.data.Status || 'Draft');
+          } else {
+            console.error('No data found in the item response');
+            setError('Failed to load item data: Item not found');
           }
         } catch (err) {
           console.error('Error fetching item:', err);
@@ -129,7 +165,7 @@ export function CreateEditItem() {
     }
 
     fetchItem();
-  }, [id, createdDate]);
+  }, [id]);
 
   const validateForm = () => {
     if (!question.trim()) {
