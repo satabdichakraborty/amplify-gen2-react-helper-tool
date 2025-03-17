@@ -11,7 +11,9 @@ import {
   TextContent,
   Alert,
   Modal,
-  Toggle
+  Toggle,
+  Pagination,
+  CollectionPreferences
 } from '@cloudscape-design/components';
 import { applyMode, Mode } from "@cloudscape-design/global-styles";
 import { listItems, deleteItem, type Item } from '../graphql/operations';
@@ -33,6 +35,23 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
   const [wrapQuestions, setWrapQuestions] = useState(false);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [preferences, setPreferences] = useState({
+    pageSize: 10,
+    visibleContent: ['id', 'question', 'createdDate', 'actions']
+  });
+  
+  // Sorting state
+  const [sortingColumn, setSortingColumn] = useState<{
+    sortingField?: string;
+    sortingDirection: 'ascending' | 'descending';
+  }>({
+    sortingField: 'QuestionId',
+    sortingDirection: 'ascending'
+  });
 
   async function loadItems() {
     try {
@@ -61,6 +80,7 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
       }
       
       setItems(data);
+      setCurrentPage(1); // Reset to first page when new data is loaded
     } catch (err) {
       console.error('Error loading items:', err);
       
@@ -112,8 +132,39 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
       </Alert>
     );
   }
+  
+  // Sort items
+  const sortedItems = [...items].sort((a, b) => {
+    if (!sortingColumn.sortingField) {
+      return 0;
+    }
+    
+    const field = sortingColumn.sortingField as keyof Item;
+    
+    // Handle special case for nested fields or computed values
+    if (field === 'QuestionId') {
+      if (sortingColumn.sortingDirection === 'ascending') {
+        return a.QuestionId - b.QuestionId;
+      } else {
+        return b.QuestionId - a.QuestionId;
+      }
+    }
+    
+    // Generic sorting for string fields
+    const aValue = String(a[field] || '');
+    const bValue = String(b[field] || '');
+    
+    if (sortingColumn.sortingDirection === 'ascending') {
+      return aValue.localeCompare(bValue);
+    } else {
+      return bValue.localeCompare(aValue);
+    }
+  });
 
-  const filteredItems = items;
+  // Calculate pagination
+  const totalPages = Math.ceil(sortedItems.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedItems = sortedItems.slice(startIndex, startIndex + pageSize);
 
   type ColumnDefinition = {
     id: string;
@@ -185,6 +236,20 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
     }
   ];
 
+  // Manage collection preferences
+  const handlePreferencesChange = ({ detail }: any) => {
+    setPreferences(detail);
+    if (detail.pageSize !== pageSize) {
+      setPageSize(detail.pageSize);
+      setCurrentPage(1); // Reset to first page when page size changes
+    }
+  };
+  
+  // Handle sorting
+  const handleSortingChange = ({ detail }: any) => {
+    setSortingColumn(detail);
+  };
+
   return (
     <Container>
       <SpaceBetween size="l">
@@ -207,8 +272,12 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
         <Table
           loading={loading}
           loadingText="Loading items"
-          items={filteredItems}
+          items={paginatedItems}
           columnDefinitions={COLUMN_DEFINITIONS}
+          visibleColumns={preferences.visibleContent}
+          sortingColumn={sortingColumn}
+          sortingDisabled={false}
+          onSortingChange={handleSortingChange}
           empty={
             <Box textAlign="center" color="inherit">
               <TextContent>
@@ -219,10 +288,53 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
           }
           header={
             <Header
-              counter={`(${filteredItems.length})`}
+              counter={`(${items.length})`}
             >
               Items
             </Header>
+          }
+          pagination={
+            <Pagination 
+              currentPageIndex={currentPage}
+              pagesCount={totalPages}
+              onChange={({ detail }) => setCurrentPage(detail.currentPageIndex)}
+              ariaLabels={{
+                nextPageLabel: 'Next page',
+                previousPageLabel: 'Previous page',
+                pageLabel: pageNumber => `Page ${pageNumber} of all pages`
+              }}
+            />
+          }
+          preferences={
+            <CollectionPreferences
+              title="Preferences"
+              confirmLabel="Confirm"
+              cancelLabel="Cancel"
+              preferences={preferences}
+              onConfirm={handlePreferencesChange}
+              pageSizePreference={{
+                title: "Items per page",
+                options: [
+                  { value: 10, label: "10 items" },
+                  { value: 20, label: "20 items" },
+                  { value: 50, label: "50 items" }
+                ]
+              }}
+              visibleContentPreference={{
+                title: "Select visible columns",
+                options: [
+                  {
+                    label: "Main item properties",
+                    options: [
+                      { id: "id", label: "ID" },
+                      { id: "question", label: "Question" },
+                      { id: "createdDate", label: "Created Date" },
+                      { id: "actions", label: "Actions" }
+                    ]
+                  }
+                ]
+              }}
+            />
           }
         />
       </SpaceBetween>
