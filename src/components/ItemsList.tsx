@@ -38,13 +38,43 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
       setLoading(true);
       setError(null);
       const data = await listItems();
-      console.log('Items loaded:', data);
+      
+      // Verify that data is an array
+      if (!Array.isArray(data)) {
+        console.error('Invalid response from listItems:', data);
+        setError({
+          message: 'Error loading items',
+          details: 'Invalid response format from the server. Expected an array of items.'
+        });
+        return;
+      }
+      
+      console.log(`Items loaded successfully: ${data.length} items`);
+      
+      // Log a few items for debugging (if any exist)
+      if (data.length > 0) {
+        console.log('Sample items:', data.slice(0, 3));
+      } else {
+        console.log('No items found in the database.');
+      }
+      
       setItems(data);
     } catch (err) {
       console.error('Error loading items:', err);
+      
+      let errorDetails = err instanceof Error ? err.message : String(err);
+      let errorAction = '';
+      
+      // Check for specific error types and provide helpful guidance
+      if (errorDetails.includes('Network Error') || errorDetails.includes('Failed to fetch')) {
+        errorAction = 'Please check your internet connection and make sure the API endpoint is accessible.';
+      } else if (errorDetails.includes('Unauthorized') || errorDetails.includes('Forbidden')) {
+        errorAction = 'Please check your API key and permissions.';
+      }
+      
       setError({
         message: 'Error loading items',
-        details: err instanceof Error ? err.message : String(err)
+        details: `${errorDetails}${errorAction ? ' ' + errorAction : ''}`
       });
     } finally {
       setLoading(false);

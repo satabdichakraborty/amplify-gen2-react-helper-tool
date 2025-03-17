@@ -9,11 +9,19 @@ import "./index.css";
 
 // Configure Amplify using the outputs with proxy for development
 try {
-  console.log('Configuring Amplify with outputs:', outputs);
+  console.log('Configuring Amplify with outputs:', JSON.stringify({
+    auth: outputs.auth ? { ...outputs.auth, user_pool_id: '***', user_pool_client_id: '***' } : undefined,
+    data: outputs.data ? { ...outputs.data, api_key: '***' } : undefined,
+  }, null, 2));
   
   // In production, use the direct URL from outputs
   // In development, use the proxy URL
   const isLocalDev = import.meta.env.DEV && window.location.hostname === 'localhost';
+  
+  // Verify the outputs have the required fields
+  if (!outputs.data || !outputs.data.url || !outputs.data.api_key) {
+    throw new Error('Invalid Amplify outputs: Missing data, URL, or API key');
+  }
   
   const config = {
     ...outputs,
@@ -25,6 +33,8 @@ try {
   };
   
   console.log('Using API endpoint:', config.data.url);
+  
+  // Configure Amplify
   Amplify.configure(config);
   console.log('Amplify configured successfully');
 } catch (error) {

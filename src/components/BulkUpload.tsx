@@ -347,76 +347,135 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
       let successCount = 0;
       let errors: string[] = [];
       
-      // Process rows in batches to avoid overwhelming the API
-      const batchSize = 5;
+      // Process rows in smaller batches to avoid overwhelming the API
+      const batchSize = 3; // Reduced batch size for better reliability
       for (let i = 0; i < rows.length; i += batchSize) {
         const batch = rows.slice(i, i + batchSize);
+        
+        console.log(`Processing batch ${Math.floor(i/batchSize) + 1} of ${Math.ceil(rows.length/batchSize)}`);
+        
         const batchPromises = batch.map(async (row, batchIndex) => {
           const rowIndex = i + batchIndex;
-          try {
-            console.log(`Processing row ${rowIndex + 1}:`, row);
-            
-            // Determine the correct answer key
-            let correctAnswerKey = row.Key || '';
-            
-            // For backward compatibility, use Rationale if Key is not provided
-            if (!correctAnswerKey && row.Rationale) {
-              const firstChar = row.Rationale.trim().charAt(0).toUpperCase();
-              if (['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].includes(firstChar)) {
-                correctAnswerKey = firstChar;
+          const maxRetries = 2;
+          let retryCount = 0;
+          
+          while (retryCount <= maxRetries) {
+            try {
+              console.log(`Processing row ${rowIndex + 1}:`, row);
+              
+              // Determine the correct answer key
+              let correctAnswerKey = row.Key || '';
+              
+              // For backward compatibility, use Rationale if Key is not provided
+              if (!correctAnswerKey && row.Rationale) {
+                const firstChar = row.Rationale.trim().charAt(0).toUpperCase();
+                if (['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].includes(firstChar)) {
+                  correctAnswerKey = firstChar;
+                }
               }
+              
+              console.log(`Correct answer key determined: ${correctAnswerKey}`);
+              
+              // Ensure QuestionId is an integer
+              let questionId: number;
+              try {
+                questionId = parseInt(row.QuestionId, 10);
+                if (isNaN(questionId)) {
+                  throw new Error(`Invalid QuestionId: ${row.QuestionId}`);
+                }
+              } catch (err) {
+                console.error(`Error parsing QuestionId at row ${rowIndex + 1}:`, err);
+                return { 
+                  success: false, 
+                  rowIndex, 
+                  error: `Invalid QuestionId: ${row.QuestionId}. Must be a number.` 
+                } as BatchResult;
+              }
+              
+              const itemToCreate = {
+                QuestionId: questionId,
+                CreatedDate: row.CreatedDate,
+                Question: row.Question,
+                responseA: row.responseA,
+                responseB: row.responseB,
+                responseC: row.responseC,
+                responseD: row.responseD,
+                responseE: row.responseE || '',
+                responseF: row.responseF || '',
+                responseG: row.responseG || '',
+                responseH: row.responseH || '',
+                rationaleA: row.rationaleA || '',
+                rationaleB: row.rationaleB || '',
+                rationaleC: row.rationaleC || '',
+                rationaleD: row.rationaleD || '',
+                rationaleE: row.rationaleE || '',
+                rationaleF: row.rationaleF || '',
+                rationaleG: row.rationaleG || '',
+                rationaleH: row.rationaleH || '',
+                Key: correctAnswerKey,
+                Rationale: row.Rationale || '',
+                Topic: row.Topic || '',
+                KnowledgeSkills: row.KnowledgeSkills || '',
+                Tags: row.Tags || '',
+                Type: row.Type || 'MCQ',
+                Status: row.Status || 'Draft'
+              };
+              
+              console.log(`Attempting to create item (attempt ${retryCount + 1}/${maxRetries + 1}):`, itemToCreate);
+              
+              // Use the updated createItem function
+              const result = await createItem(itemToCreate);
+              
+              // Validate the result
+              if (!result) {
+                throw new Error('Create operation returned an empty result');
+              }
+              
+              console.log('Item created successfully:', result);
+              
+              return { success: true, rowIndex } as BatchResult;
+            } catch (err) {
+              console.error(`Error creating item at row ${rowIndex + 1} (attempt ${retryCount + 1}/${maxRetries + 1}):`, err);
+              
+              // Check if this is a retryable error
+              const errorMessage = err instanceof Error ? err.message : String(err);
+              const isNetworkError = 
+                errorMessage.includes('Network error') || 
+                errorMessage.includes('Failed to fetch') || 
+                errorMessage.includes('timeout') ||
+                errorMessage.includes('connection');
+              
+              if (isNetworkError && retryCount < maxRetries) {
+                console.log(`Retrying row ${rowIndex + 1} after network error (retry ${retryCount + 1}/${maxRetries})...`);
+                retryCount++;
+                
+                // Exponential backoff: wait longer between retries
+                const delay = 1000 * Math.pow(2, retryCount);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                continue;
+              }
+              
+              return { 
+                success: false, 
+                rowIndex, 
+                error: errorMessage
+              } as BatchResult;
             }
-            
-            console.log(`Correct answer key determined: ${correctAnswerKey}`);
-            
-            const itemToCreate = {
-              QuestionId: parseInt(row.QuestionId, 10),
-              CreatedDate: row.CreatedDate,
-              Question: row.Question,
-              responseA: row.responseA,
-              responseB: row.responseB,
-              responseC: row.responseC,
-              responseD: row.responseD,
-              responseE: row.responseE || '',
-              responseF: row.responseF || '',
-              responseG: row.responseG || '',
-              responseH: row.responseH || '',
-              rationaleA: row.rationaleA || '',
-              rationaleB: row.rationaleB || '',
-              rationaleC: row.rationaleC || '',
-              rationaleD: row.rationaleD || '',
-              rationaleE: row.rationaleE || '',
-              rationaleF: row.rationaleF || '',
-              rationaleG: row.rationaleG || '',
-              rationaleH: row.rationaleH || '',
-              Key: correctAnswerKey,
-              Rationale: row.Rationale || '',
-              Topic: row.Topic || '',
-              KnowledgeSkills: row.KnowledgeSkills || '',
-              Tags: row.Tags || '',
-              Type: row.Type || 'MCQ',
-              Status: row.Status || 'Draft'
-            };
-            
-            console.log('Attempting to create item:', itemToCreate);
-            
-            // Use the updated createItem function
-            const result = await createItem(itemToCreate);
-            console.log('Item created successfully:', result);
-            
-            return { success: true, rowIndex } as BatchResult;
-          } catch (err) {
-            console.error(`Error creating item at row ${rowIndex + 1}:`, err);
-            return { 
-              success: false, 
-              rowIndex, 
-              error: err instanceof Error ? err.message : String(err) 
-            } as BatchResult;
           }
+          
+          // If we reached here after all retries, it means the last retry also failed
+          return { 
+            success: false, 
+            rowIndex, 
+            error: `Failed after ${maxRetries + 1} attempts` 
+          } as BatchResult;
         });
         
         // Wait for all items in the batch to be processed
         const batchResults = await Promise.all(batchPromises);
+        
+        // Add a small delay between batches to avoid overwhelming the API
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         // Count successes and collect errors
         batchResults.forEach(result => {
@@ -427,7 +486,7 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
           }
         });
         
-        console.log(`Batch processed. Total successful: ${successCount}, Errors: ${errors.length}`);
+        console.log(`Batch processed. Total successful so far: ${successCount}, Errors: ${errors.length}`);
       }
 
       console.log(`Bulk upload completed. ${successCount} items created successfully.`);

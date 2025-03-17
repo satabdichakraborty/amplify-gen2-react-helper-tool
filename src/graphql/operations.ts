@@ -38,11 +38,53 @@ export type Item = {
 export async function listItems(): Promise<Item[]> {
   try {
     console.log('Attempting to list items...');
-    const response = await client.models.Item.list();
-    console.log('List items response:', response);
+    
+    // Check if client is initialized properly
+    if (!client || !client.models || !client.models.Item) {
+      console.error('Client is not properly initialized:', client);
+      throw new Error('API client is not properly initialized');
+    }
+    
+    // Fetch the items with a timeout
+    let response;
+    try {
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Request timed out after 10 seconds')), 10000);
+      });
+      
+      response = await Promise.race([
+        client.models.Item.list(),
+        timeoutPromise
+      ]);
+    } catch (err) {
+      console.error('Error in API call for listItems:', err);
+      if (err instanceof Error && err.message.includes('timed out')) {
+        throw new Error('Database query timed out. The server may be unresponsive or overloaded.');
+      }
+      throw err;
+    }
+    
+    console.log('List items response received:', response);
+    
+    // Verify that the response has the expected structure
+    if (!response || !response.data) {
+      console.error('Invalid response from list operation:', response);
+      throw new Error('Invalid response from database: empty or missing data');
+    }
+    
+    if (!Array.isArray(response.data)) {
+      console.error('Invalid data type in response:', response.data);
+      throw new Error('Invalid response data type: expected an array');
+    }
+    
+    console.log(`Successfully retrieved ${response.data.length} items from the database`);
     return response.data as unknown as Item[];
   } catch (error) {
     console.error('Error in listItems:', error);
+    // Rethrow the error with a more user-friendly message
+    if (error instanceof Error) {
+      throw new Error(`Failed to retrieve items: ${error.message}`);
+    }
     throw error;
   }
 }
@@ -104,7 +146,24 @@ export async function createItem(item: Partial<Item>): Promise<Item> {
     console.log('Calling client.models.Item.create with:', JSON.stringify(itemWithDefaults, null, 2));
     
     try {
+      // Ensure the client is valid before proceeding
+      if (!client || !client.models || !client.models.Item) {
+        console.error('Client is not properly initialized:', client);
+        throw new Error('API client is not properly initialized');
+      }
+      
+      // Add a small delay to avoid race conditions (sometimes helps with connectivity issues)
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      // Try the create operation with awaiting to catch any errors
       const response = await client.models.Item.create(itemWithDefaults as any);
+      
+      // Verify the response data
+      if (!response || !response.data) {
+        console.error('Empty response from create operation:', response);
+        throw new Error('Failed to create item: Empty response');
+      }
+      
       console.log('Create item response:', JSON.stringify(response, null, 2));
       return response.data as unknown as Item;
     } catch (innerError) {
@@ -112,6 +171,16 @@ export async function createItem(item: Partial<Item>): Promise<Item> {
       if (innerError instanceof Error) {
         console.error('Error details:', innerError.message);
         console.error('Error stack:', innerError.stack);
+        
+        // Check for specific error conditions
+        if (innerError.message.includes('Network error') || 
+            innerError.message.includes('Failed to fetch')) {
+          throw new Error('Network error: Unable to connect to the database. Check your internet connection and API configuration.');
+        }
+        
+        if (innerError.message.includes('not authorized')) {
+          throw new Error('Authorization error: The API key may be invalid or expired.');
+        }
       }
       throw innerError;
     }
