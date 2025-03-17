@@ -136,21 +136,29 @@ describe('CreateEditItem', () => {
   test('toggles can be clicked to select correct answer', async () => {
     renderWithRouter(<CreateEditItem />, { route: '/item' });
     
-    // Find all toggle buttons
-    const toggleButtons = screen.getAllByRole('checkbox');
+    // Find all checkboxes for correct answers (they're in the response sections)
+    const correctLabels = screen.getAllByText('Correct');
+    expect(correctLabels.length).toBeGreaterThan(0);
     
-    // Click the first toggle button
-    await userEvent.click(toggleButtons[0]);
+    // Find the checkbox next to the first "Correct" label
+    const firstToggleParent = correctLabels[0].parentElement;
+    const firstToggle = firstToggleParent?.querySelector('input[type="checkbox"]');
+    expect(firstToggle).not.toBeNull();
     
-    // Verify the toggle is checked
-    expect(toggleButtons[0]).toBeChecked();
+    // Find the checkbox next to the second "Correct" label
+    const secondToggleParent = correctLabels[1].parentElement;
+    const secondToggle = secondToggleParent?.querySelector('input[type="checkbox"]');
+    expect(secondToggle).not.toBeNull();
     
-    // Click the second toggle button
-    await userEvent.click(toggleButtons[1]);
+    // Click the second toggle
+    if (secondToggle) {
+      await userEvent.click(secondToggle);
+    }
     
-    // Verify the second toggle is checked and the first is unchecked
-    expect(toggleButtons[1]).toBeChecked();
-    expect(toggleButtons[0]).not.toBeChecked();
+    // In Multiple Choice mode, only one answer can be correct at a time
+    // So after clicking the second toggle, it should be checked and the first should not be
+    expect(secondToggle).toBeChecked();
+    expect(firstToggle).not.toBeChecked();
   });
   
   test('general rationale field is rendered and can be edited', async () => {
@@ -202,5 +210,46 @@ describe('CreateEditItem', () => {
       // Second child should contain Rationale field
       expect(rationaleContainer!.textContent).toContain('Rationale');
     });
+  });
+
+  it('toggles between Multiple Choice and Multiple Response modes', async () => {
+    render(
+      <MemoryRouter>
+        <CreateEditItem />
+      </MemoryRouter>
+    );
+    
+    // Check that we start in Multiple Choice mode with 4 responses
+    expect(screen.getByText('Multiple Choice')).toBeInTheDocument();
+    expect(screen.getByText('Multiple Response')).toBeInTheDocument();
+    
+    // Find the toggle between the "Multiple Choice" and "Multiple Response" text
+    const multipleChoiceText = screen.getByText('Multiple Choice');
+    const toggleParent = multipleChoiceText.parentElement?.parentElement;
+    const toggle = toggleParent?.querySelector('input[type="checkbox"]');
+    expect(toggle).toBeInTheDocument();
+    
+    // Initially, only responses A-D should be visible
+    expect(screen.getAllByText(/Response [A-D]/)).toHaveLength(4);
+    
+    // Toggle to Multiple Response mode
+    if (toggle) {
+      await userEvent.click(toggle);
+    }
+    
+    // Now all responses A-F should be visible
+    expect(screen.getAllByText(/Response [A-F]/)).toHaveLength(6);
+    
+    // Check that checkboxes are used instead of toggles
+    const checkboxes = document.querySelectorAll('[type="checkbox"]');
+    expect(checkboxes.length).toBeGreaterThan(0);
+    
+    // Toggle back to Multiple Choice mode
+    if (toggle) {
+      await userEvent.click(toggle);
+    }
+    
+    // Now only responses A-D should be visible again
+    expect(screen.getAllByText(/Response [A-D]/)).toHaveLength(4);
   });
 });

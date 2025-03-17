@@ -13,6 +13,7 @@ import Alert from "@cloudscape-design/components/alert";
 import AppLayout from "@cloudscape-design/components/app-layout";
 import Toggle from "@cloudscape-design/components/toggle";
 import Select, { SelectProps } from "@cloudscape-design/components/select";
+import Checkbox from "@cloudscape-design/components/checkbox";
 import { client } from "../main";
 
 // Styles for the textarea wrapper
@@ -54,13 +55,13 @@ export function CreateEditItem() {
   const [rationaleE, setRationaleE] = useState<string>('');
   const [rationaleF, setRationaleF] = useState<string>('');
   const [rationale, setRationale] = useState<string>('');
-  const [correctAnswer, setCorrectAnswer] = useState<string>('A');
-  const [type, setType] = useState<string>('MCQ');
+  const [correctAnswers, setCorrectAnswers] = useState<string[]>(['A']);
   const [status, setStatus] = useState<string>('Draft');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isEditing] = useState<boolean>(!!id);
   const [selectedAction, setSelectedAction] = useState<SelectProps.Option | null>(null);
+  const [isMultipleResponse, setIsMultipleResponse] = useState<boolean>(false);
 
   useEffect(() => {
     async function fetchItem() {
@@ -89,72 +90,86 @@ export function CreateEditItem() {
             // Optional fields
             if ('rationaleE' in item.data && typeof item.data.rationaleE === 'string') setRationaleE(item.data.rationaleE);
             if ('rationaleF' in item.data && typeof item.data.rationaleF === 'string') setRationaleF(item.data.rationaleF);
+            
+            // Check if this is a multiple response question
+            if ('Type' in item.data && typeof item.data.Type === 'string') {
+              if (item.data.Type === 'MRQ') {
+                setIsMultipleResponse(true);
+              }
+            }
+            
+            // Handle correct answers
             if ('Key' in item.data && typeof item.data.Key === 'string') {
-              setCorrectAnswer(item.data.Key);
+              if (item.data.Key.includes(',')) {
+                // Multiple response
+                setCorrectAnswers(item.data.Key.split(','));
+                setIsMultipleResponse(true);
+              } else {
+                // Single response
+                setCorrectAnswers([item.data.Key]);
+              }
             } else if ('Rationale' in item.data && typeof item.data.Rationale === 'string') {
               // Backward compatibility for old data
               const firstChar = item.data.Rationale.trim().charAt(0).toUpperCase();
               if (['A', 'B', 'C', 'D', 'E', 'F'].includes(firstChar)) {
-                setCorrectAnswer(firstChar);
+                setCorrectAnswers([firstChar]);
               }
             }
-            if ('Rationale' in item.data && typeof item.data.Rationale === 'string') {
-              setRationale(item.data.Rationale);
-            }
-            if ('Type' in item.data && typeof item.data.Type === 'string') setType(item.data.Type);
-            if ('Status' in item.data && typeof item.data.Status === 'string') setStatus(item.data.Status);
+            
+            setRationale(item.data.Rationale || '');
+            setStatus(item.data.Status || 'Draft');
           }
         } catch (err) {
-          setError(`Error loading item: ${err instanceof Error ? err.message : String(err)}`);
+          console.error('Error fetching item:', err);
+          setError('Failed to load item data');
         } finally {
           setLoading(false);
         }
       }
     }
+
     fetchItem();
   }, [id, createdDate]);
 
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, any> = {};
-
-    // Validate question
+  const validateForm = () => {
     if (!question.trim()) {
-      newErrors.question = "Question is required";
+      setError('Question is required');
+      return false;
     }
 
-    // Validate responses
-    const responseErrors: string[] = [];
-    if (!responseA.trim()) {
-      responseErrors.push("Response A text is required");
-    }
-    if (!rationaleA.trim()) {
-      responseErrors.push("Response A rationale is required");
-    }
-    if (!responseB.trim()) {
-      responseErrors.push("Response B text is required");
-    }
-    if (!rationaleB.trim()) {
-      responseErrors.push("Response B rationale is required");
-    }
-    if (!responseC.trim()) {
-      responseErrors.push("Response C text is required");
-    }
-    if (!rationaleC.trim()) {
-      responseErrors.push("Response C rationale is required");
-    }
-    if (!responseD.trim()) {
-      responseErrors.push("Response D text is required");
-    }
-    if (!rationaleD.trim()) {
-      responseErrors.push("Response D rationale is required");
+    if (!responseA.trim() || !responseB.trim() || !responseC.trim() || !responseD.trim()) {
+      setError('At least 4 response options are required');
+      return false;
     }
 
-    if (responseErrors.length > 0) {
-      newErrors.responses = responseErrors;
+    if (isMultipleResponse) {
+      // For multiple response, require at least 1 correct answer
+      if (correctAnswers.length === 0) {
+        setError('At least one correct answer must be selected');
+        return false;
+      }
+      
+      // For multiple response, require at most 3 correct answers
+      if (correctAnswers.length > 3) {
+        setError('At most 3 correct answers can be selected');
+        return false;
+      }
+      
+      // For multiple response, require responses E and F
+      if (!responseE.trim() || !responseF.trim()) {
+        setError('All 6 response options are required for Multiple Response questions');
+        return false;
+      }
+    } else {
+      // For multiple choice, require exactly 1 correct answer
+      if (correctAnswers.length !== 1) {
+        setError('Exactly one correct answer must be selected');
+        return false;
+      }
     }
 
     setError(null);
-    return Object.keys(newErrors).length === 0;
+    return true;
   };
 
   const handleResponseChange = (index: number, field: 'text' | 'rationale', value: string) => {
@@ -199,7 +214,7 @@ export function CreateEditItem() {
 
       const itemData = {
         Question: question,
-        Type: type,
+        Type: isMultipleResponse ? 'MRQ' : 'MCQ',
         Status: status,
         responseA,
         responseB,
@@ -213,13 +228,13 @@ export function CreateEditItem() {
         rationaleD,
         rationaleE,
         rationaleF,
-        Key: correctAnswer,
+        Key: correctAnswers.join(','),
         Rationale: rationale
       };
 
       if (isEditing && id) {
         await client.models.Item.update({
-          QuestionId: parseInt(id, 10),
+          QuestionId: questionId,
           CreatedDate: createdDate,
           ...itemData
         });
@@ -233,7 +248,8 @@ export function CreateEditItem() {
 
       navigate('/');
     } catch (err) {
-      setError(`Error saving item: ${err instanceof Error ? err.message : String(err)}`);
+      console.error('Error saving item:', err);
+      setError('Failed to save item');
     } finally {
       setLoading(false);
     }
@@ -277,7 +293,8 @@ export function CreateEditItem() {
     rationaleValue: string, 
     index: number
   ) => {
-    const isCorrectAnswer = correctAnswer === letter;
+    const isCorrectAnswer = correctAnswers.includes(letter);
+    const canSelectMore = correctAnswers.length < 3 || isCorrectAnswer;
 
     return (
       <Container>
@@ -285,10 +302,28 @@ export function CreateEditItem() {
             <span style={{ fontWeight: 'bold' }}>Response {letter}</span>
             <div style={{ display: 'flex', alignItems: 'center' }}>
               <span style={correctLabelStyle(isCorrectAnswer)}>Correct</span>
-              <Toggle
-                checked={isCorrectAnswer}
-                onChange={() => setCorrectAnswer(letter)}
-              />
+              {isMultipleResponse ? (
+                <Checkbox
+                  checked={isCorrectAnswer}
+                  disabled={!canSelectMore && !isCorrectAnswer}
+                  onChange={({ detail }) => {
+                    if (detail.checked) {
+                      if (correctAnswers.length < 3) {
+                        setCorrectAnswers([...correctAnswers, letter]);
+                      }
+                    } else {
+                      setCorrectAnswers(correctAnswers.filter(a => a !== letter));
+                    }
+                  }}
+                />
+              ) : (
+                <Toggle
+                  checked={isCorrectAnswer}
+                  onChange={() => {
+                    setCorrectAnswers([letter]);
+                  }}
+                />
+              )}
             </div>
           </div>
           
@@ -418,14 +453,39 @@ export function CreateEditItem() {
                       <SpaceBetween size="l">
                         <Header variant="h2">Responses</Header>
                         
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ fontWeight: 'bold' }}>Response Type</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span>Multiple Choice</span>
+                            <Toggle
+                              checked={isMultipleResponse}
+                              onChange={({ detail }) => {
+                                setIsMultipleResponse(detail.checked);
+                                if (detail.checked) {
+                                  // If switching to Multiple Response, keep only the first selected answer
+                                  if (correctAnswers.length > 0) {
+                                    setCorrectAnswers([correctAnswers[0]]);
+                                  }
+                                } else {
+                                  // If switching to Multiple Choice, keep only the first selected answer
+                                  if (correctAnswers.length > 0) {
+                                    setCorrectAnswers([correctAnswers[0]]);
+                                  }
+                                }
+                              }}
+                            />
+                            <span>Multiple Response</span>
+                          </div>
+                        </div>
+                        
                         {renderResponseSection('A', responseA, rationaleA, 0)}
                         {renderResponseSection('B', responseB, rationaleB, 1)}
                         {renderResponseSection('C', responseC, rationaleC, 2)}
                         {renderResponseSection('D', responseD, rationaleD, 3)}
                         
-                        {/* Optional responses */}
-                        {(responseE || !isEditing) && renderResponseSection('E', responseE, rationaleE, 4)}
-                        {(responseF || !isEditing) && renderResponseSection('F', responseF, rationaleF, 5)}
+                        {/* Optional responses - show E and F only for Multiple Response */}
+                        {isMultipleResponse && renderResponseSection('E', responseE, rationaleE, 4)}
+                        {isMultipleResponse && renderResponseSection('F', responseF, rationaleF, 5)}
                       </SpaceBetween>
                     </div>
                   </Container>
