@@ -10,7 +10,8 @@ import {
   Box,
   TextContent,
   Alert,
-  Modal
+  Modal,
+  Toggle
 } from '@cloudscape-design/components';
 import { applyMode, Mode } from "@cloudscape-design/global-styles";
 import { listItems, deleteItem, type Item } from '../graphql/operations';
@@ -31,6 +32,7 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
+  const [wrapQuestions, setWrapQuestions] = useState(false);
 
   async function loadItems() {
     try {
@@ -115,7 +117,7 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
 
   type ColumnDefinition = {
     id: string;
-    header: string;
+    header: string | React.ReactNode;
     cell: (item: Item) => React.ReactNode;
     sortingField?: string;
   };
@@ -129,8 +131,33 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
     },
     {
       id: 'question',
-      header: 'Question',
-      cell: (item: Item) => item.Question,
+      header: (
+        <SpaceBetween direction="horizontal" size="xs" alignItems="center">
+          Question
+          <Toggle
+            checked={wrapQuestions}
+            onChange={({ detail }) => setWrapQuestions(detail.checked)}
+            ariaLabel="Toggle text wrapping for questions"
+          />
+        </SpaceBetween>
+      ),
+      cell: (item: Item) => (
+        <div style={{ 
+          maxWidth: '400px', 
+          overflow: 'hidden', 
+          textOverflow: wrapQuestions ? 'clip' : 'ellipsis', 
+          whiteSpace: wrapQuestions ? 'normal' : 'nowrap',
+          position: 'relative',
+          wordBreak: wrapQuestions ? 'break-word' : 'normal',
+          lineHeight: wrapQuestions ? '1.4' : 'inherit',
+          maxHeight: wrapQuestions ? '100px' : 'none',
+          overflowY: wrapQuestions ? 'auto' : 'hidden'
+        }} 
+        title={wrapQuestions ? '' : item.Question} // Show tooltip only in non-wrapped mode
+        >
+          {item.Question}
+        </div>
+      ),
       sortingField: 'Question'
     },
     {
