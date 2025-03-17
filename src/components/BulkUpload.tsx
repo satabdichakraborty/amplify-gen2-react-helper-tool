@@ -145,12 +145,9 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
         return `Row ${i + 1}: QuestionId must be a valid integer`;
       }
       
-      // Validate CreatedDate format (YYYY-MM-DD)
-      if (row.CreatedDate) {
-        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-        if (!dateRegex.test(row.CreatedDate)) {
-          return `Row ${i + 1}: CreatedDate must be in YYYY-MM-DD format`;
-        }
+      // Validate CreatedDate is not empty
+      if (!row.CreatedDate || row.CreatedDate.trim() === '') {
+        return `Row ${i + 1}: CreatedDate cannot be empty`;
       }
 
       // Validate Key if provided (should be a single character A-H)

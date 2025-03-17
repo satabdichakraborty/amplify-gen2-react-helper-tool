@@ -481,4 +481,66 @@ describe('BulkUpload', () => {
       expect(mockOnUploadComplete).toHaveBeenCalled();
     });
   });
+
+  it('handles CSV upload with different date formats', async () => {
+    render(
+      <BulkUpload
+        visible={true}
+        onDismiss={mockOnDismiss}
+        onUploadComplete={mockOnUploadComplete}
+      />
+    );
+
+    // Create a test CSV file with various date formats
+    const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,Key
+123,2023-01-01,Test question with ISO date,MCQ,Active,Option A,Option B,Option C,Option D,A
+456,01/02/2023,Test question with US date,MCQ,Active,Option A,Option B,Option C,Option D,B
+789,January 3 2023,Test question with text date,MCQ,Active,Option A,Option B,Option C,Option D,C`;
+    
+    const file = new File([csvContent], 'test.csv', { type: 'text/csv' });
+    // Add toString method for tests
+    Object.defineProperty(file, 'toString', {
+      value: function() { return csvContent; }
+    });
+    
+    // Select the file
+    const fileInput = screen.getByLabelText('Choose file');
+    await userEvent.upload(fileInput, file);
+    
+    // Click upload button
+    const uploadButton = screen.getByRole('button', { name: /Upload/i });
+    await userEvent.click(uploadButton);
+    
+    // Verify createItem was called for each item with the correct date
+    await waitFor(() => {
+      expect(createItem).toHaveBeenCalledTimes(3);
+      
+      // Check first item (ISO date)
+      expect(createItem).toHaveBeenCalledWith(expect.objectContaining({
+        QuestionId: 123,
+        CreatedDate: '2023-01-01',
+        Question: 'Test question with ISO date'
+      }));
+      
+      // Check second item (US date)
+      expect(createItem).toHaveBeenCalledWith(expect.objectContaining({
+        QuestionId: 456,
+        CreatedDate: '01/02/2023',
+        Question: 'Test question with US date'
+      }));
+      
+      // Check third item (text date)
+      expect(createItem).toHaveBeenCalledWith(expect.objectContaining({
+        QuestionId: 789,
+        CreatedDate: 'January 3 2023',
+        Question: 'Test question with text date'
+      }));
+    });
+    
+    // Verify success message and callback
+    await waitFor(() => {
+      expect(screen.getByText(/Successfully uploaded 3 items/i)).toBeInTheDocument();
+      expect(mockOnUploadComplete).toHaveBeenCalled();
+    });
+  });
 }); 

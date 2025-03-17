@@ -10,7 +10,7 @@ The CSV file should contain the following columns:
 These columns must be included in your CSV file:
 
 - **QuestionId**: A unique integer identifier for the question
-- **CreatedDate**: The creation date in YYYY-MM-DD format (e.g., 2024-06-01)
+- **CreatedDate**: A string representing the creation date (any format)
 - **Question**: The actual question text
 - **responseA, responseB, responseC, responseD**: The text for options A through D
 
@@ -32,7 +32,11 @@ These columns are optional but recommended:
 
 1. **Case Insensitivity**: Column headers are case-insensitive. For example, "QuestionId", "questionid", and "QUESTIONID" are all recognized as the same column.
 
-2. **Date Format**: The CreatedDate must be in YYYY-MM-DD format (e.g., 2024-06-01).
+2. **Date Format**: The CreatedDate can be any string value you prefer. Common formats include:
+   - ISO format: 2024-06-01
+   - US format: 06/01/2024
+   - Timestamp: 1717200000
+   - Text: June 1, 2024
 
 3. **Key Format**: The Key value should be a single character from A to H, representing the correct answer.
 
@@ -49,7 +53,6 @@ We've provided two example files you can use as templates:
 
 - **Missing Required Headers**: Make sure your CSV includes all required columns
 - **Invalid QuestionId**: QuestionId must be a valid integer
-- **Invalid CreatedDate Format**: CreatedDate must be in YYYY-MM-DD format
 - **Invalid Key Format**: Key must be a single character (A-H)
 
 ## Tips for Successful Uploads
@@ -57,5 +60,4 @@ We've provided two example files you can use as templates:
 - Use Excel or Google Sheets to prepare your CSV file
 - Save as CSV (Comma delimited)
 - Verify all required columns are present
-- Check for proper date formatting
 - Ensure the file uses UTF-8 encoding if it contains special characters 

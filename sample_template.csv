@@ -1,2 +1,4 @@
 QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,Key
-1001,2024-06-01,What is the capital of France?,MCQ,Active,Paris,London,Berlin,Madrid,A 
+1001,2024-06-01,What is the capital of France?,MCQ,Active,Paris,London,Berlin,Madrid,A
+1002,06/02/2024,What is the largest planet in our solar system?,MCQ,Active,Jupiter,Saturn,Earth,Mars,A
+1003,June 3 2024,What language is React built with?,MCQ,Active,JavaScript,Python,Java,C++,A 
