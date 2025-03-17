@@ -267,4 +267,59 @@ describe('BulkUpload', () => {
       expect(alert).toHaveTextContent('Row 1: Key must be a single character (A-F) representing the correct answer');
     });
   });
+
+  it('handles case-insensitive CSV headers', async () => {
+    render(
+      <BulkUpload
+        visible={true}
+        onDismiss={mockOnDismiss}
+        onUploadComplete={mockOnUploadComplete}
+      />
+    );
+
+    // Create a test CSV file with mixed case headers
+    const csvContent = `questionid,createddate,question,type,status,responsea,responseb,responsec,responsed,rationalea,rationaleb,rationalec,rationaled,key,rationale
+123,2023-01-01,Test question,MCQ,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,A,Additional rationale`;
+    
+    const file = new File([csvContent], 'test.csv', { type: 'text/csv' });
+    // Add toString method for tests
+    Object.defineProperty(file, 'toString', {
+      value: function() { return csvContent; }
+    });
+    
+    // Select the file
+    const fileInput = screen.getByLabelText('Choose file');
+    await userEvent.upload(fileInput, file);
+    
+    // Click upload button
+    const uploadButton = screen.getByRole('button', { name: /Upload/i });
+    await userEvent.click(uploadButton);
+    
+    // Verify createItem was called with correct data
+    await waitFor(() => {
+      expect(createItem).toHaveBeenCalledWith(expect.objectContaining({
+        QuestionId: 123,
+        CreatedDate: '2023-01-01',
+        Question: 'Test question',
+        Type: 'MCQ',
+        Status: 'Active',
+        responseA: 'Option A',
+        responseB: 'Option B',
+        responseC: 'Option C',
+        responseD: 'Option D',
+        rationaleA: 'Rationale A',
+        rationaleB: 'Rationale B',
+        rationaleC: 'Rationale C',
+        rationaleD: 'Rationale D',
+        Key: 'A',
+        Rationale: 'Additional rationale'
+      }));
+    });
+    
+    // Verify success message and callback
+    await waitFor(() => {
+      expect(screen.getByText(/Successfully uploaded 1 item/i)).toBeInTheDocument();
+      expect(mockOnUploadComplete).toHaveBeenCalled();
+    });
+  });
 }); 

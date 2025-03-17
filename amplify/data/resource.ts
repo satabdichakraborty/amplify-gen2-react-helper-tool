@@ -1,7 +1,7 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 
 /*== STEP 1 ===============================================================
-The section below creates database tables for storing question data and related options.
+The section below creates a database table for storing question data.
 =========================================================================*/
 const schema = a.schema({
   Item: a
@@ -17,10 +17,10 @@ const schema = a.schema({
       rationaleC: a.string().required(),  // Explanation for option C
       responseD: a.string().required(),   // Option D text
       rationaleD: a.string().required(),  // Explanation for option D
-      responseE: a.string(),              // Option E text
-      responseF: a.string(),              // Option F text
-      rationaleE: a.string(),             // Explanation for option E
-      rationaleF: a.string(),             // Explanation for option F
+      responseE: a.string(),              // Option E text (Optional)
+      responseF: a.string(),              // Option F text (Optional)
+      rationaleE: a.string(),             // Explanation for option E (Optional)
+      rationaleF: a.string(),             // Explanation for option F (Optional)
       Key: a.string(),                    // Correct answer (A, B, C, D, E, or F)
       Rationale: a.string(),              // General rationale for the question
       Topic: a.string(),                  // Topic category
@@ -32,58 +32,7 @@ const schema = a.schema({
       updatedAt: a.datetime()
     })
     .authorization((allow) => [allow.publicApiKey()])
-    .identifier(['QuestionId', 'CreatedDate']),
-
-  // New models for options
-  Topic: a
-    .model({
-      id: a.id(),
-      name: a.string().required(),
-      description: a.string(),
-      createdAt: a.datetime(),
-      updatedAt: a.datetime()
-    })
-    .authorization((allow) => [allow.publicApiKey()]),
-
-  KnowledgeSkill: a
-    .model({
-      id: a.id(),
-      name: a.string().required(),
-      description: a.string(),
-      createdAt: a.datetime(),
-      updatedAt: a.datetime()
-    })
-    .authorization((allow) => [allow.publicApiKey()]),
-
-  Tag: a
-    .model({
-      id: a.id(),
-      name: a.string().required(),
-      description: a.string(),
-      createdAt: a.datetime(),
-      updatedAt: a.datetime()
-    })
-    .authorization((allow) => [allow.publicApiKey()]),
-
-  ItemType: a
-    .model({
-      id: a.id(),
-      name: a.string().required(),
-      description: a.string(),
-      createdAt: a.datetime(),
-      updatedAt: a.datetime()
-    })
-    .authorization((allow) => [allow.publicApiKey()]),
-
-  ItemStatus: a
-    .model({
-      id: a.id(),
-      name: a.string().required(),
-      description: a.string(),
-      createdAt: a.datetime(),
-      updatedAt: a.datetime()
-    })
-    .authorization((allow) => [allow.publicApiKey()]),
+    .identifier(['QuestionId', 'CreatedDate'])
 });
 
 export type Schema = ClientSchema<typeof schema>;
@@ -100,7 +49,7 @@ export const data = defineData({
 });
 
 /*== STEP 2 ===============================================================
-To interact with the tables from your frontend code, generate a Data 
+To interact with the table from your frontend code, generate a Data 
 client using the following code:
 
 "use client"
@@ -136,14 +85,5 @@ const newItem = await client.models.Item.create({
 await client.models.Item.delete({
   QuestionId: 123,
   CreatedDate: "2024-03-14"
-})
-
-// List all topics
-const { data: topics } = await client.models.Topic.list()
-
-// Create a new topic
-const newTopic = await client.models.Topic.create({
-  name: "Mathematics",
-  description: "Math-related questions"
 })
 =========================================================================*/

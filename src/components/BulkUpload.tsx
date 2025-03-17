@@ -42,6 +42,32 @@ interface CSVRow {
   CreatedDate: string;
 }
 
+// Define a mapping of lowercase header names to their proper case versions
+const headerMapping: Record<string, keyof CSVRow> = {
+  'questionid': 'QuestionId',
+  'createddate': 'CreatedDate',
+  'question': 'Question',
+  'responsea': 'responseA',
+  'responseb': 'responseB',
+  'responsec': 'responseC',
+  'responsed': 'responseD',
+  'responsee': 'responseE',
+  'responsef': 'responseF',
+  'rationalea': 'rationaleA',
+  'rationaleb': 'rationaleB',
+  'rationalec': 'rationaleC',
+  'rationaled': 'rationaleD',
+  'rationalee': 'rationaleE',
+  'rationalef': 'rationaleF',
+  'key': 'Key',
+  'rationale': 'Rationale',
+  'topic': 'Topic',
+  'knowledgeskills': 'KnowledgeSkills',
+  'tags': 'Tags',
+  'type': 'Type',
+  'status': 'Status'
+};
+
 interface BatchResult {
   success: boolean;
   rowIndex: number;
@@ -115,8 +141,8 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
       firstLine = firstLine.slice(1);
     }
     
-    // Parse headers, handling potential quotes
-    const headers = firstLine.split(',').map(h => {
+    // Parse headers, handling potential quotes and making them case-insensitive
+    const rawHeaders = firstLine.split(',').map(h => {
       const trimmed = h.trim();
       // Remove quotes if present
       return trimmed.startsWith('"') && trimmed.endsWith('"') 
@@ -124,7 +150,13 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
         : trimmed;
     });
     
-    console.log('CSV Headers:', headers);
+    // Map raw headers to proper case headers using the headerMapping
+    const headers: string[] = rawHeaders.map(header => {
+      const lowerHeader = header.toLowerCase();
+      return headerMapping[lowerHeader] || header;
+    });
+    
+    console.log('CSV Headers (normalized):', headers);
     
     const rows: CSVRow[] = [];
 
