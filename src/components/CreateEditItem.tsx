@@ -28,17 +28,15 @@ const responseColumnStyle = {
 
 // Style for the correct answer toggle section
 const toggleContainerStyle = {
-  marginLeft: 'auto', 
-  display: 'flex', 
-  alignItems: 'right',
-  marginRight: '20px'
+  display: 'flex',
+  alignItems: 'center',
+  marginLeft: 'auto'
 };
 
 // Style for the correct answer label
 const correctLabelStyle = (isCorrect: boolean) => ({
   marginRight: '12px', 
-  fontWeight: isCorrect ? 'bold' : 'normal',
-  border: '1px solid green'
+  fontWeight: isCorrect ? 'bold' : 'normal'
 });
 
 export function CreateEditItem() {
