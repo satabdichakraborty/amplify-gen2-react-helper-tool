@@ -677,6 +677,56 @@ describe('BulkUpload', () => {
     });
   });
 
+  it('handles commas in quoted CSV fields', async () => {
+    render(
+      <BulkUpload
+        visible={true}
+        onDismiss={mockOnDismiss}
+        onUploadComplete={mockOnUploadComplete}
+      />
+    );
+
+    // Create a CSV file with commas in quoted fields
+    const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,Key
+123,2023-01-01,"What is the capital of France, and why is it important?",MCQ,Active,"Paris, the city of lights","London, the UK capital","Berlin, the German capital","Madrid, the Spanish capital",A`;
+    
+    const file = new File([csvContent], 'test.csv', { type: 'text/csv' });
+    // Add toString method for tests
+    Object.defineProperty(file, 'toString', {
+      value: function() { return csvContent; }
+    });
+    
+    // Select the file
+    const fileInput = screen.getByLabelText('Choose file');
+    await userEvent.upload(fileInput, file);
+    
+    // Click upload button
+    const uploadButton = screen.getByRole('button', { name: /Upload/i });
+    await userEvent.click(uploadButton);
+    
+    // Verify createItem was called with correct data, including the commas
+    await waitFor(() => {
+      expect(createItem).toHaveBeenCalledWith(expect.objectContaining({
+        QuestionId: 123,
+        CreatedDate: '2023-01-01',
+        Question: 'What is the capital of France, and why is it important?',
+        Type: 'MCQ',
+        Status: 'Active',
+        responseA: 'Paris, the city of lights',
+        responseB: 'London, the UK capital',
+        responseC: 'Berlin, the German capital',
+        responseD: 'Madrid, the Spanish capital',
+        Key: 'A'
+      }));
+    });
+    
+    // Verify success message and callback
+    await waitFor(() => {
+      expect(screen.getByText(/Successfully uploaded 1 items/i)).toBeInTheDocument();
+      expect(mockOnUploadComplete).toHaveBeenCalled();
+    });
+  });
+
   it('handles CSV with columns in different order', async () => {
     render(
       <BulkUpload

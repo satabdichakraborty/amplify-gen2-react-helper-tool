@@ -228,13 +228,7 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
     }
     
     // Parse headers, handling potential quotes
-    const rawHeaders = firstLine.split(',').map(h => {
-      const trimmed = h.trim();
-      // Remove quotes if present
-      return trimmed.startsWith('"') && trimmed.endsWith('"') 
-        ? trimmed.slice(1, -1).trim() 
-        : trimmed;
-    });
+    const rawHeaders = parseCSVLine(firstLine);
     
     // Map raw headers to proper case headers using the headerMapping
     const headers: string[] = rawHeaders.map(header => {
@@ -251,15 +245,8 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
       const line = lines[i].trim();
       if (!line) continue;
       
-      // Simple CSV parsing - doesn't handle quoted commas properly
-      // For a production app, consider using a CSV parsing library
-      const values = line.split(',').map(v => {
-        const trimmed = v.trim();
-        // Remove quotes if present
-        return trimmed.startsWith('"') && trimmed.endsWith('"') 
-          ? trimmed.slice(1, -1).trim() 
-          : trimmed;
-      });
+      // Parse CSV line with proper handling of quoted fields
+      const values = parseCSVLine(line);
       
       // Skip if we don't have enough values
       if (values.length < headers.length / 2) {
@@ -282,6 +269,40 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
     }
 
     return { rows, rawHeaders };
+  }
+
+  // Helper function to parse a CSV line correctly handling quoted fields
+  function parseCSVLine(line: string): string[] {
+    const result: string[] = [];
+    let currentField = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      
+      if (char === '"') {
+        // Check for escaped quotes (two double quotes in a row)
+        if (i + 1 < line.length && line[i + 1] === '"') {
+          currentField += '"';
+          i++; // Skip the next quote
+        } else {
+          // Toggle quote state
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        // End of field
+        result.push(currentField.trim());
+        currentField = '';
+      } else {
+        // Regular character
+        currentField += char;
+      }
+    }
+    
+    // Don't forget the last field
+    result.push(currentField.trim());
+    
+    return result;
   }
 
   async function handleUpload() {
