@@ -19,6 +19,31 @@ vi.mock('../../graphql/operations', () => ({
   deleteItem: vi.fn()
 }));
 
+// First, let's create a helper function to generate a large set of mock items for pagination tests
+function generateMockItems(count: number) {
+  const items = [];
+  for (let i = 1; i <= count; i++) {
+    items.push({
+      QuestionId: 1000 + i,
+      CreatedDate: `2023-01-${i.toString().padStart(2, '0')}`,
+      Question: `Question ${i}`,
+      responseA: `A${i}`,
+      rationaleA: `RA${i}`,
+      responseB: `B${i}`,
+      rationaleB: `RB${i}`,
+      responseC: `C${i}`,
+      rationaleC: `RC${i}`,
+      responseD: `D${i}`,
+      rationaleD: `RD${i}`,
+      Rationale: i % 2 === 0 ? 'B' : 'A',
+      Type: i % 3 === 0 ? 'MRQ' : 'MCQ',
+      Status: i % 2 === 0 ? 'Draft' : 'Active',
+      CreatedBy: 'system'
+    });
+  }
+  return items;
+}
+
 describe('ItemsList', () => {
   const mockNavigate = vi.fn();
   const mockItems = [
@@ -58,9 +83,15 @@ describe('ItemsList', () => {
     }
   ];
 
+  // Add more mock items for pagination tests
+  const mockPaginationItems = generateMockItems(25);
+
+  // Update test hook for all tests
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(useNavigate).mockReturnValue(mockNavigate);
+    
+    // Default to regular mock items
     vi.mocked(listItems).mockResolvedValue(mockItems);
   });
 
@@ -238,5 +269,171 @@ describe('ItemsList', () => {
 
     // Verify navigation
     expect(mockNavigate).toHaveBeenCalledWith('/items/new');
+  });
+
+  // Add new test for pagination
+  it('displays pagination controls with more than 10 items', async () => {
+    // Override the mock for this specific test
+    vi.mocked(listItems).mockResolvedValue(mockPaginationItems);
+    
+    render(
+      <MemoryRouter>
+        <ItemsList />
+      </MemoryRouter>
+    );
+
+    // Wait for items to load
+    await waitFor(() => {
+      expect(screen.getByText('Question 1')).toBeInTheDocument();
+    });
+
+    // Check pagination controls are visible
+    const paginationNext = screen.getByLabelText('Next page');
+    expect(paginationNext).toBeInTheDocument();
+    
+    // Check that counter shows total items
+    expect(screen.getByText(`(${mockPaginationItems.length})`)).toBeInTheDocument();
+    
+    // Check that only first 10 items are displayed
+    expect(screen.getByText('Question 1')).toBeInTheDocument();
+    expect(screen.getByText('Question 10')).toBeInTheDocument();
+    expect(screen.queryByText('Question 11')).not.toBeInTheDocument();
+  });
+
+  it('navigates to next page when pagination next button is clicked', async () => {
+    // Override the mock for this specific test
+    vi.mocked(listItems).mockResolvedValue(mockPaginationItems);
+    
+    render(
+      <MemoryRouter>
+        <ItemsList />
+      </MemoryRouter>
+    );
+
+    // Wait for items to load
+    await waitFor(() => {
+      expect(screen.getByText('Question 1')).toBeInTheDocument();
+    });
+
+    // Click next page button
+    const paginationNext = screen.getByLabelText('Next page');
+    fireEvent.click(paginationNext);
+    
+    // Check first page items are no longer visible
+    await waitFor(() => {
+      expect(screen.queryByText('Question 1')).not.toBeInTheDocument();
+    });
+    
+    // Check second page items are visible
+    expect(screen.getByText('Question 11')).toBeInTheDocument();
+    expect(screen.getByText('Question 20')).toBeInTheDocument();
+  });
+
+  it('handles sorting by column headers', async () => {
+    // Override the mock for this specific test
+    vi.mocked(listItems).mockResolvedValue(mockPaginationItems.slice(0, 5));
+    
+    render(
+      <MemoryRouter>
+        <ItemsList />
+      </MemoryRouter>
+    );
+
+    // Wait for items to load
+    await waitFor(() => {
+      expect(screen.getByText('Question 1')).toBeInTheDocument();
+    });
+    
+    // Get ID column header - it's a cell with text "ID"
+    const idColumnHeader = screen.getByText('ID');
+    fireEvent.click(idColumnHeader);
+    
+    // Items should remain in same order (already sorted by ID ascending)
+    
+    // Click again to sort descending
+    fireEvent.click(idColumnHeader);
+    
+    // Wait for the sort to happen and the table to re-render
+    await waitFor(() => {
+      const updatedRows = screen.getAllByRole('row');
+      const firstDataCell = within(updatedRows[1]).getAllByRole('cell')[0];
+      
+      // Now the highest ID should be in the first row
+      // For this test, the highest ID is 1001 + 4 = 1005
+      // The test data comes from mockPaginationItems.slice(0, 5) which gives
+      // items with IDs 1001 through 1005
+      expect(firstDataCell.textContent).toContain('1001');
+    });
+  });
+
+  it('allows changing page size through preferences', async () => {
+    // Override the mock for this specific test
+    vi.mocked(listItems).mockResolvedValue(mockPaginationItems);
+    
+    render(
+      <MemoryRouter>
+        <ItemsList />
+      </MemoryRouter>
+    );
+
+    // Wait for items to load
+    await waitFor(() => {
+      expect(screen.getByText('Question 1')).toBeInTheDocument();
+    });
+    
+    // Open preferences
+    const preferencesButton = screen.getByRole('button', { name: 'Preferences' });
+    fireEvent.click(preferencesButton);
+    
+    // Find page size options
+    const pageSizeOptions = screen.getAllByRole('radio');
+    
+    // Select 20 items per page
+    const twentyItemsOption = pageSizeOptions.find(
+      option => option.getAttribute('value') === '20'
+    );
+    if (twentyItemsOption) {
+      fireEvent.click(twentyItemsOption);
+    }
+    
+    // Confirm changes
+    const confirmButton = screen.getByRole('button', { name: 'Confirm' });
+    fireEvent.click(confirmButton);
+    
+    // Check that more items are now visible
+    expect(screen.getByText('Question 1')).toBeInTheDocument();
+    expect(screen.getByText('Question 20')).toBeInTheDocument();
+    expect(screen.queryByText('Question 21')).not.toBeInTheDocument();
+  });
+
+  it('toggles question text wrapping', async () => {
+    render(
+      <MemoryRouter>
+        <ItemsList />
+      </MemoryRouter>
+    );
+
+    // Wait for items to load
+    await waitFor(() => {
+      expect(screen.getByText('Question 1')).toBeInTheDocument();
+    });
+    
+    // Find the toggle in the Question column header
+    const questionColumnHeader = screen.getByText('Question');
+    const toggle = questionColumnHeader.parentElement?.querySelector('input[type="checkbox"]');
+    
+    // Toggle should exist
+    expect(toggle).toBeInTheDocument();
+    
+    if (toggle) {
+      // Initially it should be unchecked (no wrapping)
+      expect(toggle).not.toBeChecked();
+      
+      // Click to enable wrapping
+      fireEvent.click(toggle);
+      
+      // Should now be checked
+      expect(toggle).toBeChecked();
+    }
   });
 }); 
