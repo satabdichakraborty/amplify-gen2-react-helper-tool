@@ -14,22 +14,30 @@ import AppLayout from "@cloudscape-design/components/app-layout";
 import Toggle from "@cloudscape-design/components/toggle";
 import { client } from "../main";
 
-// Consistent styles for AWS console-like appearance
-const containerStyles = {
-  padding: '20px',
-  backgroundColor: '#ffffff',
-  borderRadius: '4px',
-  boxShadow: '0 1px 1px 0 rgba(0, 28, 36, 0.1)',
-  marginBottom: '20px'
+
+
+// Styles for the textarea wrapper
+const textareaWrapperStyle = {
+  width: '100%'
 };
 
-const responseContainerStyles = {
-  padding: '16px',
-  backgroundColor: '#f8f8f8',
-  borderRadius: '4px',
-  marginBottom: '16px',
-  border: '1px solid #eaeded'
+// Style for each column in the response section
+const responseColumnStyle = {
+  flex: 1
 };
+
+// Style for the correct answer toggle section
+const toggleContainerStyle = {
+  marginLeft: 'auto', 
+  display: 'flex', 
+  alignItems: 'center'
+};
+
+// Style for the correct answer label
+const correctLabelStyle = (isCorrect: boolean) => ({
+  marginRight: '12px', 
+  fontWeight: isCorrect ? 'bold' : 'normal'
+});
 
 export function CreateEditItem() {
   const navigate = useNavigate();
@@ -51,9 +59,6 @@ export function CreateEditItem() {
   const [rationaleF, setRationaleF] = useState<string>('');
   const [rationale, setRationale] = useState<string>('');
   const [correctAnswer, setCorrectAnswer] = useState<string>('A');
-  const [topic, setTopic] = useState<string>('');
-  const [knowledgeSkills, setKnowledgeSkills] = useState<string>('');
-  const [tags, setTags] = useState<string>('');
   const [type, setType] = useState<string>('MCQ');
   const [status, setStatus] = useState<string>('Draft');
   const [loading, setLoading] = useState<boolean>(false);
@@ -95,23 +100,10 @@ export function CreateEditItem() {
               if (['A', 'B', 'C', 'D', 'E', 'F'].includes(firstChar)) {
                 setCorrectAnswer(firstChar);
               }
-            } else if ('responsesJson' in item.data && typeof item.data.responsesJson === 'string') {
-              // Backward compatibility for old data
-              try {
-                const parsedJson = JSON.parse(item.data.responsesJson);
-                if (parsedJson.correctAnswer) {
-                  setCorrectAnswer(parsedJson.correctAnswer);
-                }
-              } catch (e) {
-                console.error('Error parsing responsesJson:', e);
-              }
             }
             if ('Rationale' in item.data && typeof item.data.Rationale === 'string') {
               setRationale(item.data.Rationale);
             }
-            if ('Topic' in item.data && typeof item.data.Topic === 'string') setTopic(item.data.Topic);
-            if ('KnowledgeSkills' in item.data && typeof item.data.KnowledgeSkills === 'string') setKnowledgeSkills(item.data.KnowledgeSkills);
-            if ('Tags' in item.data && typeof item.data.Tags === 'string') setTags(item.data.Tags);
             if ('Type' in item.data && typeof item.data.Type === 'string') setType(item.data.Type);
             if ('Status' in item.data && typeof item.data.Status === 'string') setStatus(item.data.Status);
           }
@@ -225,10 +217,7 @@ export function CreateEditItem() {
         rationaleE,
         rationaleF,
         Key: correctAnswer,
-        Rationale: rationale,
-        Topic: topic,
-        KnowledgeSkills: knowledgeSkills,
-        Tags: tags
+        Rationale: rationale
       };
 
       if (isEditing && id) {
@@ -262,13 +251,13 @@ export function CreateEditItem() {
   ) => {
     return (
       <Container>
-        <div style={responseContainerStyles}>
+        <div>
           <FormField
             label={
               <SpaceBetween direction="horizontal" size="xs" alignItems="center">
                 <span style={{ fontWeight: 'bold' }}>Response {letter}</span>
-                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
-                  <span style={{ marginRight: '12px', fontWeight: correctAnswer === letter ? 'bold' : 'normal' }}>Correct</span>
+                <div style={toggleContainerStyle}>
+                  <span style={correctLabelStyle(correctAnswer === letter)}>Correct</span>
                   <Toggle
                     checked={correctAnswer === letter}
                     onChange={({ detail }) => {
@@ -280,31 +269,40 @@ export function CreateEditItem() {
                 </div>
               </SpaceBetween>
             }
+            stretch
           >
-            <SpaceBetween size="l">
-              <FormField
-                label="Text"
-                errorText={error}
-                stretch
-              >
-                <TextArea
-                  value={responseValue}
-                  onChange={({ detail }) => handleResponseChange(index, 'text', detail.value)}
-                  rows={4}
-                />
-              </FormField>
-              <FormField
-                label="Rationale"
-                errorText={error}
-                stretch
-              >
-                <TextArea
-                  value={rationaleValue}
-                  onChange={({ detail }) => handleResponseChange(index, 'rationale', detail.value)}
-                  rows={4}
-                />
-              </FormField>
-            </SpaceBetween>
+            <div style={{ display: 'flex', gap: '20px', width: '100%' }}>
+              <div style={responseColumnStyle}>
+                <FormField
+                  label="Text"
+                  errorText={error}
+                  stretch
+                >
+                  <div style={textareaWrapperStyle}>
+                    <TextArea
+                      value={responseValue}
+                      onChange={({ detail }) => handleResponseChange(index, 'text', detail.value)}
+                      rows={4}
+                    />
+                  </div>
+                </FormField>
+              </div>
+              <div style={responseColumnStyle}>
+                <FormField
+                  label="Rationale"
+                  errorText={error}
+                  stretch
+                >
+                  <div style={textareaWrapperStyle}>
+                    <TextArea
+                      value={rationaleValue}
+                      onChange={({ detail }) => handleResponseChange(index, 'rationale', detail.value)}
+                      rows={4}
+                    />
+                  </div>
+                </FormField>
+              </div>
+            </div>
           </FormField>
         </div>
       </Container>
@@ -350,13 +348,14 @@ export function CreateEditItem() {
                 <SpaceBetween size="l">
                   {/* Basic Information Section */}
                   <Container>
-                    <div style={containerStyles}>
+                    <div>
                       <SpaceBetween size="l">
                         <Header variant="h2">Basic Information</Header>
                         
                         <FormField
                           label="Question ID"
                           description="A unique identifier for this question"
+                          stretch
                         >
                           <Input
                             value={questionId.toString()}
@@ -370,11 +369,13 @@ export function CreateEditItem() {
                           errorText={error}
                           stretch
                         >
-                          <TextArea
-                            value={question}
-                            onChange={({ detail }) => setQuestion(detail.value)}
-                            rows={3}
-                          />
+                          <div>
+                            <TextArea
+                              value={question}
+                              onChange={({ detail }) => setQuestion(detail.value)}
+                              rows={3}
+                            />
+                          </div>
                         </FormField>
                       </SpaceBetween>
                     </div>
@@ -382,7 +383,7 @@ export function CreateEditItem() {
 
                   {/* Responses Section */}
                   <Container>
-                    <div style={containerStyles}>
+                    <div>
                       <SpaceBetween size="l">
                         <Header variant="h2">Responses</Header>
                         
@@ -394,6 +395,29 @@ export function CreateEditItem() {
                         {/* Optional responses */}
                         {(responseE || !isEditing) && renderResponseSection('E', responseE, rationaleE, 4)}
                         {(responseF || !isEditing) && renderResponseSection('F', responseF, rationaleF, 5)}
+                      </SpaceBetween>
+                    </div>
+                  </Container>
+
+                  {/* General Rationale Section */}
+                  <Container>
+                    <div>
+                      <SpaceBetween size="l">
+                        <Header variant="h2">General Rationale</Header>
+                        
+                        <FormField
+                          label="Explanation"
+                          description="Provide a general explanation for the correct answer and overall context"
+                          stretch
+                        >
+                          <div style={textareaWrapperStyle}>
+                            <TextArea
+                              value={rationale}
+                              onChange={({ detail }) => setRationale(detail.value)}
+                              rows={6}
+                            />
+                          </div>
+                        </FormField>
                       </SpaceBetween>
                     </div>
                   </Container>
@@ -413,6 +437,8 @@ export function CreateEditItem() {
       }
       navigationHide
       toolsHide
+      contentType="default"
+      maxContentWidth={1200}
     />
   );
 } 

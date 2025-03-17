@@ -152,4 +152,51 @@ describe('CreateEditItem', () => {
     expect(toggleButtons[1]).toBeChecked();
     expect(toggleButtons[0]).not.toBeChecked();
   });
+  
+  test('general rationale field is rendered and can be edited', async () => {
+    // Render the component with the correct route
+    renderWithRouter(<CreateEditItem />, { route: '/item' });
+    
+    // Check that the form renders with the correct title
+    expect(screen.getByText('Create New Item')).toBeInTheDocument();
+    
+    // Check that the General Rationale section is rendered
+    expect(screen.getByText('General Rationale')).toBeInTheDocument();
+    
+    // Find the Explanation field by its label
+    const explanationField = screen.getByLabelText('Explanation');
+    expect(explanationField).toBeInTheDocument();
+    
+    // Type into the Explanation field
+    await userEvent.type(explanationField, 'This is a test rationale');
+    
+    // Verify the text was entered
+    expect(explanationField).toHaveValue('This is a test rationale');
+  });
+  
+  test('response text and rationale fields are displayed side by side', async () => {
+    // Render the component with the correct route
+    renderWithRouter(<CreateEditItem />, { route: '/item' });
+    
+    // Check that the form renders with the correct title
+    expect(screen.getByText('Create New Item')).toBeInTheDocument();
+    
+    // Find the response container elements
+    const responseContainers = document.querySelectorAll('div[style*="display: flex"][style*="gap: 20px"]');
+    
+    // Verify that we have at least one response container with flex layout
+    expect(responseContainers.length).toBeGreaterThan(0);
+    
+    // For each response container, verify it has two child divs with flex: 1
+    responseContainers.forEach(container => {
+      const flexChildren = container.querySelectorAll('div[style*="flex: 1"]');
+      expect(flexChildren.length).toBe(2);
+      
+      // First child should contain Text field
+      expect(flexChildren[0].textContent).toContain('Text');
+      
+      // Second child should contain Rationale field
+      expect(flexChildren[1].textContent).toContain('Rationale');
+    });
+  });
 });
