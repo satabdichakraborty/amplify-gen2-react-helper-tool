@@ -1,7 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { RationaleDisplay } from '../RationaleDisplay';
 import { vi } from 'vitest';
-import { convertUrlsToLinks } from '../../utils/formatUtils';
 
 // Use the actual implementation for these tests
 vi.unmock('../../utils/formatUtils');
