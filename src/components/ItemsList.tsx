@@ -18,6 +18,7 @@ import {
 import { applyMode, Mode } from "@cloudscape-design/global-styles";
 import { listItems, deleteItem, type Item } from '../graphql/operations';
 import { BulkUpload } from './BulkUpload';
+import { ItemDetails } from './ItemDetails';
 
 // Apply light mode to match AWS Console
 applyMode(Mode.Light);
@@ -35,6 +36,8 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
   const [wrapQuestions, setWrapQuestions] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [detailsModalVisible, setDetailsModalVisible] = useState<boolean>(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -222,6 +225,12 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
       header: 'Actions',
       cell: (item: Item) => (
         <SpaceBetween direction="horizontal" size="xs">
+          <Button onClick={() => {
+            setSelectedItem(item);
+            setDetailsModalVisible(true);
+          }}>
+            View
+          </Button>
           <Button onClick={() => navigate(`/items/${item.QuestionId}/edit`)}>
             Edit
           </Button>
@@ -338,6 +347,12 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
           }
         />
       </SpaceBetween>
+
+      <ItemDetails 
+        item={selectedItem}
+        visible={detailsModalVisible}
+        onDismiss={() => setDetailsModalVisible(false)}
+      />
 
       <Modal
         visible={deleteModalVisible}

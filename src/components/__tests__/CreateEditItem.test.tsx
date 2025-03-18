@@ -224,8 +224,8 @@ describe('CreateEditItem', () => {
       expect(textContainer).not.toBeNull();
       expect(rationaleContainer).not.toBeNull();
       
-      // First child should contain Text field
-      expect(textContainer!.textContent).toContain('Text');
+      // First child should contain Response field
+      expect(textContainer!.textContent).toContain('Response');
       
       // Second child should contain Rationale field
       expect(rationaleContainer!.textContent).toContain('Rationale');

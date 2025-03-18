@@ -16,11 +16,7 @@ import Select, { SelectProps } from "@cloudscape-design/components/select";
 import Checkbox from "@cloudscape-design/components/checkbox";
 import { client } from "../main";
 import { listItems } from '../graphql/operations';
-
-// Styles for the textarea wrapper
-const textareaWrapperStyle = {
-  width: '100%'
-};
+import { EditableRationale } from './EditableRationale';
 
 // Style for the correct answer label
 const correctLabelStyle = (isCorrect: boolean) => ({
@@ -348,25 +344,28 @@ export function CreateEditItem() {
                         setCorrectAnswers([...correctAnswers, letter]);
                       }
                     } else {
-                      setCorrectAnswers(correctAnswers.filter(a => a !== letter));
+                      if (correctAnswers.length > 1) {
+                        setCorrectAnswers(correctAnswers.filter(a => a !== letter));
+                      }
                     }
                   }}
                 />
               ) : (
                 <Toggle
                   checked={isCorrectAnswer}
-                  onChange={() => {
-                    setCorrectAnswers([letter]);
+                  onChange={({ detail }) => {
+                    if (detail.checked) {
+                      setCorrectAnswers([letter]);
+                    }
                   }}
                 />
               )}
             </div>
           </div>
-          
-          <div style={{ display: 'flex', gap: '20px', width: '100%' }} data-testid="response-container">
+          <div style={{ display: 'flex', gap: '10px' }} data-testid="response-container">
             <div style={{ flex: 1 }} data-testid="text-container">
               <FormField
-                label="Text"
+                label="Response"
                 errorText={error}
                 stretch
               >
@@ -378,17 +377,13 @@ export function CreateEditItem() {
               </FormField>
             </div>
             <div style={{ flex: 1 }} data-testid="rationale-container">
-              <FormField
+              <EditableRationale
+                value={rationaleValue}
+                onChange={(value) => handleResponseChange(index, 'rationale', value)}
                 label="Rationale"
-                errorText={error}
-                stretch
-              >
-                <TextArea
-                  value={rationaleValue}
-                  onChange={({ detail }) => handleResponseChange(index, 'rationale', detail.value)}
-                  rows={4}
-                />
-              </FormField>
+                description="Explain why this response is correct or incorrect"
+                rows={4}
+              />
             </div>
           </div>
       </Container>
@@ -532,19 +527,10 @@ export function CreateEditItem() {
                       <SpaceBetween size="l">
                         <Header variant="h2">General Rationale</Header>
                         
-                        <FormField
-                          label="Explanation"
-                          description="Provide a general explanation for the correct answer and overall context"
-                          stretch
-                        >
-                          <div style={textareaWrapperStyle}>
-                            <TextArea
-                              value={rationale}
-                              onChange={({ detail }) => setRationale(detail.value)}
-                              rows={6}
-                            />
-                          </div>
-                        </FormField>
+                        <EditableRationale
+                          value={rationale}
+                          onChange={setRationale}
+                        />
                       </SpaceBetween>
                     </div>
                   </Container>
