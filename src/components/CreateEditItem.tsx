@@ -548,8 +548,8 @@ export function CreateEditItem() {
                       <SpaceBetween size="l">
                         <Header variant="h2">Basic Information</Header>
                         
-                        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-                          <div style={{ width: '200px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+                          <div>
                             <FormField
                               label="Question ID"
                               description="A unique identifier for this question"
@@ -560,7 +560,7 @@ export function CreateEditItem() {
                               />
                             </FormField>
                           </div>
-                          <div style={{ width: '200px' }}>
+                          <div>
                             <FormField
                               label="Created By"
                               description="User who created this question"
@@ -571,7 +571,7 @@ export function CreateEditItem() {
                               />
                             </FormField>
                           </div>
-                          <div style={{ width: '200px' }}>
+                          <div>
                             <FormField
                               label="Created Date"
                               description="Date when this question was created"
@@ -582,7 +582,7 @@ export function CreateEditItem() {
                               />
                             </FormField>
                           </div>
-                          <div style={{ width: '200px' }}>
+                          <div>
                             <FormField
                               label="Topic"
                               description="Subject area of the question"
@@ -593,7 +593,7 @@ export function CreateEditItem() {
                               />
                             </FormField>
                           </div>
-                          <div style={{ width: '200px' }}>
+                          <div>
                             <FormField
                               label="Knowledge/Skills"
                               description="Skills being assessed"
