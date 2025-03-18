@@ -362,7 +362,10 @@ export function CreateEditItem() {
   // Action options dropdown
   const actionOptions = [
     { label: 'Mark as Active', value: 'active', disabled: status === 'Active' },
-    { label: 'Mark as Draft', value: 'draft', disabled: status === 'Draft' }
+    { label: 'Mark as Draft', value: 'draft', disabled: status === 'Draft' },
+    { label: 'Run Item Rules', value: 'runRules' },
+    { label: 'Generate Rationale', value: 'generateRationale' },
+    { label: 'Validate Items', value: 'validateItems' }
   ];
 
   const handleActionChange = ({ detail }: { detail: SelectProps.ChangeDetail }) => {
@@ -374,6 +377,15 @@ export function CreateEditItem() {
       setStatus('Active');
     } else if (action === 'draft') {
       setStatus('Draft');
+    } else if (action === 'runRules') {
+      // Placeholder for Run Item Rules functionality
+      alert('Run Item Rules functionality will be implemented later');
+    } else if (action === 'generateRationale') {
+      // Placeholder for Generate Rationale functionality
+      alert('Generate Rationale functionality will be implemented later');
+    } else if (action === 'validateItems') {
+      // Placeholder for Validate Items functionality
+      alert('Validate Items functionality will be implemented later');
     }
     
     // Reset the selected action (visual feedback that the action was performed)
