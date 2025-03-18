@@ -14,6 +14,7 @@ import AppLayout from "@cloudscape-design/components/app-layout";
 import Toggle from "@cloudscape-design/components/toggle";
 import Select, { SelectProps } from "@cloudscape-design/components/select";
 import Checkbox from "@cloudscape-design/components/checkbox";
+import RadioGroup from "@cloudscape-design/components/radio-group";
 import { client } from "../main";
 import { listItems } from '../graphql/operations';
 import { EditableRationale } from './EditableRationale';
@@ -65,6 +66,20 @@ export function CreateEditItem() {
   const [isMultipleResponse, setIsMultipleResponse] = useState<boolean>(false);
   // Track how many response options to display based on data in database
   const [numResponsesToShow, setNumResponsesToShow] = useState<number>(4);
+
+  // Parse Key field into array of correct answers
+  const parseKeyField = (key: string): string[] => {
+    if (!key || key.trim() === '') return ['A'];
+    
+    // Split by comma if present
+    if (key.includes(',')) {
+      return key.split(',').map(k => k.trim().toUpperCase());
+    }
+    
+    // Otherwise, treat each character as an answer
+    return key.split('').map(k => k.trim().toUpperCase())
+      .filter(k => ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].includes(k));
+  };
 
   useEffect(() => {
     async function fetchItem() {
@@ -132,33 +147,38 @@ export function CreateEditItem() {
             setRationaleG(item.data.rationaleG || '');
             setRationaleH(item.data.rationaleH || '');
             
-            // Determine how many responses to show
-            let responsesToShow = 4; // Default to A-D
-            if (item.data.responseH && item.data.responseH.trim()) responsesToShow = 8;
-            else if (item.data.responseG && item.data.responseG.trim()) responsesToShow = 7;
-            else if (item.data.responseF && item.data.responseF.trim()) responsesToShow = 6;
-            else if (item.data.responseE && item.data.responseE.trim()) responsesToShow = 5;
+            // Determine the question type
+            const qType = item.data.Type || 'MCQ';
+            setIsMultipleResponse(qType === 'MRQ');
+            
+            // Determine how many responses to show based on question type and data
+            let responsesToShow = 4; // Default for MCQ
+            
+            if (qType === 'MRQ') {
+              // For MRQ, show at least 6 responses
+              responsesToShow = 6;
+              
+              // But if we have data in G or H, show more
+              if (item.data.responseH && item.data.responseH.trim()) responsesToShow = 8;
+              else if (item.data.responseG && item.data.responseG.trim()) responsesToShow = 7;
+            } else {
+              // For MCQ, always show exactly 4 responses
+              responsesToShow = 4;
+            }
+            
             setNumResponsesToShow(responsesToShow);
             
-            // Check if this is a multiple response question
-            const isMRQ = item.data.Type === 'MRQ';
-            setIsMultipleResponse(isMRQ);
-            
             // Handle correct answers from Key field
-            if ('Key' in item.data && typeof item.data.Key === 'string') {
-              if (item.data.Key.includes(',')) {
-                // Multiple response with comma-separated values
-                setCorrectAnswers(item.data.Key.split(','));
-              } else {
-                // Key might be multiple characters without commas (like "ABC")
-                const keyChars = item.data.Key.split('');
-                setCorrectAnswers(keyChars);
-              }
-            } else if ('Rationale' in item.data && typeof item.data.Rationale === 'string') {
+            if ('Key' in item.data && item.data.Key) {
+              const answers = parseKeyField(item.data.Key);
+              setCorrectAnswers(answers);
+            } else if ('Rationale' in item.data && item.data.Rationale) {
               // Backward compatibility for old data
               const firstChar = item.data.Rationale.trim().charAt(0).toUpperCase();
               if (['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].includes(firstChar)) {
                 setCorrectAnswers([firstChar]);
+              } else {
+                setCorrectAnswers(['A']); // Default to A if no valid answer found
               }
             }
             
@@ -187,9 +207,15 @@ export function CreateEditItem() {
       if (numResponsesToShow < 6) {
         setNumResponsesToShow(6);
       }
+      
+      // Update the question type
+      setIsMultipleResponse(true);
     } else {
       // For MCQ, show exactly 4 responses
       setNumResponsesToShow(4);
+      
+      // Update the question type
+      setIsMultipleResponse(false);
       
       // If switching from MRQ to MCQ, ensure only one answer is selected
       if (correctAnswers.length > 1) {
@@ -199,94 +225,66 @@ export function CreateEditItem() {
   }, [isMultipleResponse]);
 
   const validateForm = () => {
+    // Basic validation
     if (!question.trim()) {
       setError('Question is required');
       return false;
     }
-
-    if (!responseA.trim() || !responseB.trim() || !responseC.trim() || !responseD.trim()) {
-      setError('At least 4 response options are required');
+    
+    // Validate responses
+    if (!responseA.trim() || !responseB.trim()) {
+      setError('At least two responses (A and B) are required');
       return false;
     }
-
-    if (isMultipleResponse) {
-      // For multiple response, require at least 1 correct answer
-      if (correctAnswers.length === 0) {
-        setError('At least one correct answer must be selected');
-        return false;
-      }
-      
-      // For multiple response, require at most 3 correct answers
-      if (correctAnswers.length > 3) {
-        setError('At most 3 correct answers can be selected');
-        return false;
-      }
-      
-      // Check additional required responses based on numResponsesToShow
-      if (numResponsesToShow >= 5 && !responseE.trim()) {
-        setError('Response E is required for Multiple Response questions with 5 or more options');
-        return false;
-      }
-      
-      if (numResponsesToShow >= 6 && !responseF.trim()) {
-        setError('Response F is required for Multiple Response questions with 6 or more options');
-        return false;
-      }
-      
-      if (numResponsesToShow >= 7 && !responseG.trim()) {
-        setError('Response G is required for Multiple Response questions with 7 or more options');
-        return false;
-      }
-      
-      if (numResponsesToShow >= 8 && !responseH.trim()) {
-        setError('Response H is required for Multiple Response questions with 8 options');
-        return false;
-      }
-    } else {
-      // For multiple choice, require exactly 1 correct answer
-      if (correctAnswers.length !== 1) {
-        setError('Exactly one correct answer must be selected for Multiple Choice questions');
-        return false;
-      }
+    
+    // Ensure we have at least one correct answer
+    if (correctAnswers.length === 0) {
+      setError('At least one response must be marked as correct');
+      return false;
     }
-
+    
+    // If MCQ, ensure only one answer is selected
+    if (!isMultipleResponse && correctAnswers.length > 1) {
+      setError('Multiple Choice questions can only have one correct answer');
+      return false;
+    }
+    
+    // For MRQ, ensure we don't exceed 3 correct answers
+    if (isMultipleResponse && correctAnswers.length > 3) {
+      setError('Multiple Response questions cannot have more than 3 correct answers');
+      return false;
+    }
+    
+    // Clear any previous errors
     setError(null);
     return true;
   };
 
   const handleResponseChange = (index: number, field: 'text' | 'rationale', value: string) => {
     switch (index) {
-      case 0:
-        if (field === 'text') setResponseA(value);
-        else setRationaleA(value);
+      case 0: // A
+        field === 'text' ? setResponseA(value) : setRationaleA(value);
         break;
-      case 1:
-        if (field === 'text') setResponseB(value);
-        else setRationaleB(value);
+      case 1: // B
+        field === 'text' ? setResponseB(value) : setRationaleB(value);
         break;
-      case 2:
-        if (field === 'text') setResponseC(value);
-        else setRationaleC(value);
+      case 2: // C
+        field === 'text' ? setResponseC(value) : setRationaleC(value);
         break;
-      case 3:
-        if (field === 'text') setResponseD(value);
-        else setRationaleD(value);
+      case 3: // D
+        field === 'text' ? setResponseD(value) : setRationaleD(value);
         break;
-      case 4:
-        if (field === 'text') setResponseE(value);
-        else setRationaleE(value);
+      case 4: // E
+        field === 'text' ? setResponseE(value) : setRationaleE(value);
         break;
-      case 5:
-        if (field === 'text') setResponseF(value);
-        else setRationaleF(value);
+      case 5: // F
+        field === 'text' ? setResponseF(value) : setRationaleF(value);
         break;
-      case 6:
-        if (field === 'text') setResponseG(value);
-        else setRationaleG(value);
+      case 6: // G
+        field === 'text' ? setResponseG(value) : setRationaleG(value);
         break;
-      case 7:
-        if (field === 'text') setResponseH(value);
-        else setRationaleH(value);
+      case 7: // H
+        field === 'text' ? setResponseH(value) : setRationaleH(value);
         break;
     }
   };
@@ -296,70 +294,53 @@ export function CreateEditItem() {
       return;
     }
 
+    console.log('Saving item with correct answers:', correctAnswers);
+    
     try {
       setLoading(true);
-      setError(null);
-
-      // Construct item data with all responses
+      
+      // Prepare the item data for save
+      const formattedKey = correctAnswers.sort().join(',');
+      
       const itemData = {
+        QuestionId: questionId,
+        CreatedDate: createdDate,
         Question: question,
-        Type: isMultipleResponse ? 'MRQ' : 'MCQ',
-        Status: status,
         responseA,
         responseB,
         responseC,
         responseD,
+        responseE: isMultipleResponse ? responseE : '',
+        responseF: isMultipleResponse ? responseF : '',
+        responseG: numResponsesToShow >= 7 ? responseG : '',
+        responseH: numResponsesToShow >= 8 ? responseH : '',
         rationaleA,
         rationaleB,
         rationaleC,
         rationaleD,
-        Key: correctAnswers.join(','),
-        Rationale: rationale
+        rationaleE: isMultipleResponse ? rationaleE : '',
+        rationaleF: isMultipleResponse ? rationaleF : '',
+        rationaleG: numResponsesToShow >= 7 ? rationaleG : '',
+        rationaleH: numResponsesToShow >= 8 ? rationaleH : '',
+        Key: formattedKey,
+        Rationale: rationale,
+        Type: isMultipleResponse ? 'MRQ' : 'MCQ',
+        Status: status
       };
-
-      // Add optional responses based on numResponsesToShow
-      if (numResponsesToShow >= 5) {
-        Object.assign(itemData, { 
-          responseE, 
-          rationaleE 
-        });
-      }
       
-      if (numResponsesToShow >= 6) {
-        Object.assign(itemData, { 
-          responseF, 
-          rationaleF 
-        });
-      }
+      console.log('Saving item data:', itemData);
       
-      if (numResponsesToShow >= 7) {
-        Object.assign(itemData, { 
-          responseG, 
-          rationaleG 
-        });
-      }
-      
-      if (numResponsesToShow >= 8) {
-        Object.assign(itemData, { 
-          responseH, 
-          rationaleH 
-        });
-      }
-
-      if (isEditing && id) {
-        await client.models.Item.update({
-          QuestionId: questionId,
-          CreatedDate: createdDate,
-          ...itemData
-        });
+      if (isEditing) {
+        // Update existing item
+        await client.models.Item.update(itemData);
+        console.log('Item updated successfully');
       } else {
-        await client.models.Item.create({
-          QuestionId: questionId,
-          CreatedDate: createdDate,
-          ...itemData
-        });
+        // Create a new item
+        await client.models.Item.create(itemData);
+        console.log('Item created successfully');
       }
-
+      
+      // Navigate back to the items list
       navigate('/');
     } catch (err) {
       console.error('Error saving item:', err);
@@ -369,34 +350,24 @@ export function CreateEditItem() {
     }
   };
 
-  const actionOptions: SelectProps.Options = [
-    { label: "Generate Rational", value: "generate" },
-    { label: "Validate Item", value: "validate" },
-    { label: "Run Item Rules", value: "rules" }
+  // Action options dropdown
+  const actionOptions = [
+    { label: 'Mark as Active', value: 'active', disabled: status === 'Active' },
+    { label: 'Mark as Draft', value: 'draft', disabled: status === 'Draft' }
   ];
 
   const handleActionChange = ({ detail }: { detail: SelectProps.ChangeDetail }) => {
-    setSelectedAction(detail.selectedOption);
+    if (!detail.selectedOption) return;
     
-    // Implement action based on selection
-    if (detail.selectedOption) {
-      switch (detail.selectedOption.value) {
-        case "generate":
-          // TODO: Implement Generate Rational functionality
-          console.log("Generate Rational selected");
-          break;
-        case "validate":
-          // TODO: Implement Validate Item functionality
-          console.log("Validate Item selected");
-          break;
-        case "rules":
-          // TODO: Implement Run Item Rules functionality
-          console.log("Run Item Rules selected");
-          break;
-      }
+    const action = detail.selectedOption.value as string;
+    
+    if (action === 'active') {
+      setStatus('Active');
+    } else if (action === 'draft') {
+      setStatus('Draft');
     }
     
-    // Reset selection after action is performed
+    // Reset the selected action (visual feedback that the action was performed)
     setTimeout(() => setSelectedAction(null), 500);
   };
 
@@ -428,7 +399,7 @@ export function CreateEditItem() {
     index: number
   ) => {
     const isCorrectAnswer = correctAnswers.includes(letter);
-    const canSelectMore = correctAnswers.length < 3 || isCorrectAnswer;
+    const canSelectMore = isMultipleResponse && (correctAnswers.length < 3 || isCorrectAnswer);
 
     return (
       <Container>
@@ -437,6 +408,7 @@ export function CreateEditItem() {
             <div style={{ display: 'flex', alignItems: 'center' }}>
               <span style={correctLabelStyle(isCorrectAnswer)}>Correct</span>
               {isMultipleResponse ? (
+                // For Multiple Response, use checkboxes (max 3 selections)
                 <Checkbox
                   checked={isCorrectAnswer}
                   disabled={!canSelectMore && !isCorrectAnswer}
@@ -448,18 +420,28 @@ export function CreateEditItem() {
                     } else {
                       if (correctAnswers.length > 1) {
                         setCorrectAnswers(correctAnswers.filter(a => a !== letter));
+                      } else {
+                        // Don't allow unchecking the last correct answer
+                        return;
                       }
                     }
                   }}
                 />
               ) : (
-                <Toggle
-                  checked={isCorrectAnswer}
+                // For Multiple Choice, use radio button (exactly 1 selection)
+                <RadioGroup
                   onChange={({ detail }) => {
-                    if (detail.checked) {
+                    if (detail.value === letter) {
                       setCorrectAnswers([letter]);
                     }
                   }}
+                  value={isCorrectAnswer ? letter : ''}
+                  items={[
+                    {
+                      value: letter,
+                      label: ''
+                    }
+                  ]}
                 />
               )}
             </div>
@@ -615,7 +597,7 @@ export function CreateEditItem() {
                         {/* Add/Remove response controls for MRQ */}
                         {isMultipleResponse && (
                           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                            {numResponsesToShow > 4 && (
+                            {numResponsesToShow > 6 && (
                               <Button onClick={handleRemoveResponse}>
                                 Remove Response
                               </Button>
@@ -653,15 +635,14 @@ export function CreateEditItem() {
       breadcrumbs={
         <BreadcrumbGroup
           items={[
-            { text: "Home", href: "/" },
-            { text: id ? "Edit Item" : "Create Item", href: "#" }
+            { text: 'Home', href: '/' },
+            { text: id ? 'Edit Item' : 'Create Item', href: '#' }
           ]}
+          ariaLabel="Breadcrumbs"
         />
       }
       navigationHide
       toolsHide
-      contentType="default"
-      maxContentWidth={1200}
     />
   );
 } 
