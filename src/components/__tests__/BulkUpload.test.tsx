@@ -10,7 +10,7 @@ vi.mock('../../graphql/operations', () => ({
     QuestionId: 123,
     CreatedDate: '2023-01-01',
     Question: 'Test question',
-    Type: 'MCQ',
+    Type: 'Multiple Choice',
     Status: 'Active',
     CreatedBy: 'system'
   })
@@ -48,7 +48,7 @@ describe('BulkUpload', () => {
 
     // Create a test CSV file with Key field
     const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,rationaleA,rationaleB,rationaleC,rationaleD,Key,Rationale
-123,2023-01-01,Test question,MCQ,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,A,Additional rationale`;
+123,2023-01-01,Test question,Multiple Choice,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,A,Additional rationale`;
     
     const file = new File([csvContent], 'test.csv', { type: 'text/csv' });
     // Add toString method for tests
@@ -70,7 +70,7 @@ describe('BulkUpload', () => {
         QuestionId: 123,
         CreatedDate: '2023-01-01',
         Question: 'Test question',
-        Type: 'MCQ',
+        Type: 'Multiple Choice',
         Status: 'Active',
         responseA: 'Option A',
         responseB: 'Option B',
@@ -103,7 +103,7 @@ describe('BulkUpload', () => {
 
     // Create a test CSV file with only Rationale field (no Key)
     const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,rationaleA,rationaleB,rationaleC,rationaleD,Rationale
-123,2023-01-01,Test question,MCQ,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,A`;
+123,2023-01-01,Test question,Multiple Choice,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,A`;
     
     const file = new File([csvContent], 'test.csv', { type: 'text/csv' });
     // Add toString method for tests
@@ -125,7 +125,7 @@ describe('BulkUpload', () => {
         QuestionId: 123,
         CreatedDate: '2023-01-01',
         Question: 'Test question',
-        Type: 'MCQ',
+        Type: 'Multiple Choice',
         Status: 'Active',
         responseA: 'Option A',
         responseB: 'Option B',
@@ -158,7 +158,7 @@ describe('BulkUpload', () => {
 
     // Create an invalid CSV file (missing CreatedDate field)
     const csvContent = `QuestionId,Question,Type,Status,responseA,responseB,responseC,responseD,rationaleA,rationaleB,rationaleC,rationaleD,Key
-123,Test question,MCQ,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,A`;
+123,Test question,Multiple Choice,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,A`;
     
     const file = new File([csvContent], 'invalid.csv', { type: 'text/csv' });
     // Add toString method for tests
@@ -197,7 +197,7 @@ describe('BulkUpload', () => {
     
     // Create a test CSV file
     const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,rationaleA,rationaleB,rationaleC,rationaleD,Key
-123,2023-01-01,Test question,MCQ,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,A`;
+123,2023-01-01,Test question,Multiple Choice,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,A`;
     
     const file = new File([csvContent], 'test.csv', { type: 'text/csv' });
     // Add toString method for tests
@@ -248,7 +248,7 @@ describe('BulkUpload', () => {
 
     // Create a CSV file with invalid Key
     const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,rationaleA,rationaleB,rationaleC,rationaleD,Key
-123,2023-01-01,Test question,MCQ,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,X`;
+123,2023-01-01,Test question,Multiple Choice,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,X`;
     
     const file = new File([csvContent], 'invalid.csv', { type: 'text/csv' });
     // Add toString method for tests
@@ -282,7 +282,7 @@ describe('BulkUpload', () => {
 
     // Create a test CSV file with mixed case headers
     const csvContent = `questionid,createddate,question,type,status,responsea,responseb,responsec,responsed,rationalea,rationaleb,rationalec,rationaled,key,rationale
-123,2023-01-01,Test question,MCQ,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,A,Additional rationale`;
+123,2023-01-01,Test question,Multiple Choice,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,A,Additional rationale`;
     
     const file = new File([csvContent], 'test.csv', { type: 'text/csv' });
     // Add toString method for tests
@@ -304,7 +304,7 @@ describe('BulkUpload', () => {
         QuestionId: 123,
         CreatedDate: '2023-01-01',
         Question: 'Test question',
-        Type: 'MCQ',
+        Type: 'Multiple Choice',
         Status: 'Active',
         responseA: 'Option A',
         responseB: 'Option B',
@@ -337,7 +337,7 @@ describe('BulkUpload', () => {
 
     // Create a test CSV file with all responses A-H
     const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,responseE,responseF,responseG,responseH,rationaleA,rationaleB,rationaleC,rationaleD,rationaleE,rationaleF,rationaleG,rationaleH,Key,Rationale
-123,2023-01-01,Test question with 8 options,MCQ,Active,Option A,Option B,Option C,Option D,Option E,Option F,Option G,Option H,Rationale A,Rationale B,Rationale C,Rationale D,Rationale E,Rationale F,Rationale G,Rationale H,G,This is a more complex question`;
+123,2023-01-01,Test question with 8 options,Multiple Choice,Active,Option A,Option B,Option C,Option D,Option E,Option F,Option G,Option H,Rationale A,Rationale B,Rationale C,Rationale D,Rationale E,Rationale F,Rationale G,Rationale H,G,This is a more complex question`;
     
     const file = new File([csvContent], 'test.csv', { type: 'text/csv' });
     // Add toString method for tests
@@ -359,7 +359,7 @@ describe('BulkUpload', () => {
         QuestionId: 123,
         CreatedDate: '2023-01-01',
         Question: 'Test question with 8 options',
-        Type: 'MCQ',
+        Type: 'Multiple Choice',
         Status: 'Active',
         responseA: 'Option A',
         responseB: 'Option B',
@@ -400,7 +400,7 @@ describe('BulkUpload', () => {
 
     // Create a test CSV file with incorrect headers
     const csvContent = `Id,Created,Question,Type,Status,A,B,C,D,ExplanationA,ExplanationB,ExplanationC,ExplanationD,CorrectAnswer
-123,2023-01-01,Test question,MCQ,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,A`;
+123,2023-01-01,Test question,Multiple Choice,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,A`;
     
     const file = new File([csvContent], 'test.csv', { type: 'text/csv' });
     // Add toString method for tests
@@ -440,7 +440,7 @@ describe('BulkUpload', () => {
 
     // Create a test CSV file with only required fields
     const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,Key
-123,2023-01-01,Test question without rationales,MCQ,Active,Option A,Option B,Option C,Option D,A`;
+123,2023-01-01,Test question without rationales,Multiple Choice,Active,Option A,Option B,Option C,Option D,A`;
     
     const file = new File([csvContent], 'test.csv', { type: 'text/csv' });
     // Add toString method for tests
@@ -462,7 +462,7 @@ describe('BulkUpload', () => {
         QuestionId: 123,
         CreatedDate: '2023-01-01',
         Question: 'Test question without rationales',
-        Type: 'MCQ',
+        Type: 'Multiple Choice',
         Status: 'Active',
         responseA: 'Option A',
         responseB: 'Option B',
@@ -494,9 +494,9 @@ describe('BulkUpload', () => {
 
     // Create a test CSV file with various date formats
     const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,Key
-123,2023-01-01,Test question with ISO date,MCQ,Active,Option A,Option B,Option C,Option D,A
-456,01/02/2023,Test question with US date,MCQ,Active,Option A,Option B,Option C,Option D,B
-789,January 3 2023,Test question with text date,MCQ,Active,Option A,Option B,Option C,Option D,C`;
+123,2023-01-01,Test question with ISO date,Multiple Choice,Active,Option A,Option B,Option C,Option D,A
+456,01/02/2023,Test question with US date,Multiple Choice,Active,Option A,Option B,Option C,Option D,B
+789,January 3 2023,Test question with text date,Multiple Choice,Active,Option A,Option B,Option C,Option D,C`;
     
     const file = new File([csvContent], 'test.csv', { type: 'text/csv' });
     // Add toString method for tests
@@ -556,9 +556,9 @@ describe('BulkUpload', () => {
 
     // Create a test CSV file with multi-character keys
     const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,rationaleA,rationaleB,rationaleC,rationaleD,Key
-123,2023-01-01,Single answer question,MCQ,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,A
-456,2023-01-02,Double answer question,MRQ,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,AB
-789,2023-01-03,Triple answer question,MRQ,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,ABC`;
+123,2023-01-01,Single answer question,Multiple Choice,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,A
+456,2023-01-02,Double answer question,Multiple Response,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,AB
+789,2023-01-03,Triple answer question,Multiple Response,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,ABC`;
     
     const file = new File([csvContent], 'test.csv', { type: 'text/csv' });
     // Add toString method for tests
@@ -621,7 +621,7 @@ describe('BulkUpload', () => {
 
     // Create a CSV file with a key that's too long
     const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,rationaleA,rationaleB,rationaleC,rationaleD,Key
-123,2023-01-01,Test question,MCQ,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,ABCD`;
+123,2023-01-01,Test question,Multiple Choice,Active,Option A,Option B,Option C,Option D,Rationale A,Rationale B,Rationale C,Rationale D,ABCD`;
     
     const file = new File([csvContent], 'invalid.csv', { type: 'text/csv' });
     // Add toString method for tests
@@ -655,7 +655,7 @@ describe('BulkUpload', () => {
 
     // Create a CSV file with a key that refers to a missing response
     const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,Key
-123,2023-01-01,Test question,MCQ,Active,Option A,Option B,Option C,,C`;
+123,2023-01-01,Test question,Multiple Choice,Active,Option A,Option B,Option C,,C`;
     
     const file = new File([csvContent], 'invalid.csv', { type: 'text/csv' });
     // Add toString method for tests
@@ -689,7 +689,7 @@ describe('BulkUpload', () => {
 
     // Create a CSV file with commas in quoted fields
     const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,Key
-123,2023-01-01,"What is the capital of France, and why is it important?",MCQ,Active,"Paris, the city of lights","London, the UK capital","Berlin, the German capital","Madrid, the Spanish capital",A`;
+123,2023-01-01,"What is the capital of France, and why is it important?",Multiple Choice,Active,"Paris, the city of lights","London, the UK capital","Berlin, the German capital","Madrid, the Spanish capital",A`;
     
     const file = new File([csvContent], 'test.csv', { type: 'text/csv' });
     // Add toString method for tests
@@ -711,7 +711,7 @@ describe('BulkUpload', () => {
         QuestionId: 123,
         CreatedDate: '2023-01-01',
         Question: 'What is the capital of France, and why is it important?',
-        Type: 'MCQ',
+        Type: 'Multiple Choice',
         Status: 'Active',
         responseA: 'Paris, the city of lights',
         responseB: 'London, the UK capital',
@@ -739,7 +739,7 @@ describe('BulkUpload', () => {
 
     // Create a CSV file with columns in different order but including all required fields
     const csvContent = `Type,CreatedDate,responseA,responseB,responseC,responseD,Status,Key,Question,QuestionId
-MCQ,2023-01-01,Option A,Option B,Option C,Option D,Active,A,Test question with different column order,123`;
+Multiple Choice,2023-01-01,Option A,Option B,Option C,Option D,Active,A,Test question with different column order,123`;
     
     const file = new File([csvContent], 'test.csv', { type: 'text/csv' });
     // Add toString method for tests
@@ -761,7 +761,7 @@ MCQ,2023-01-01,Option A,Option B,Option C,Option D,Active,A,Test question with d
         QuestionId: 123,
         CreatedDate: '2023-01-01',
         Question: 'Test question with different column order',
-        Type: 'MCQ',
+        Type: 'Multiple Choice',
         Status: 'Active',
         responseA: 'Option A',
         responseB: 'Option B',

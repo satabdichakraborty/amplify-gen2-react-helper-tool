@@ -131,7 +131,7 @@ export async function createItem(item: Partial<Item>): Promise<Item> {
       Tags: item.Tags || '',
       Rationale: item.Rationale || '',
       // Ensure Type and Status have values
-      Type: item.Type || 'MCQ',
+      Type: item.Type || 'Multiple Choice',
       Status: item.Status || 'Draft'
     };
     

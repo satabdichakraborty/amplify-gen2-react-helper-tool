@@ -70,7 +70,7 @@ async function seedOptions() {
 
   // Item Types
   const itemTypes = [
-    { name: 'MCQ', description: 'Multiple Choice Question' },
+    { name: 'Multiple Choice', description: 'Multiple Choice Question' },
     { name: 'TF', description: 'True/False Question' },
     { name: 'SA', description: 'Short Answer Question' },
     { name: 'Essay', description: 'Essay Question' },

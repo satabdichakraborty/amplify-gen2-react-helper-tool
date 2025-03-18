@@ -34,7 +34,7 @@ const mockItems = [
     responseD: 'D1',
     rationaleD: 'RD1',
     Rationale: 'A',
-    Type: 'MCQ',
+    Type: 'Multiple Choice',
     Status: 'Active',
     CreatedBy: 'system',
     Key: 'A',
@@ -54,7 +54,7 @@ const mockItems = [
     responseD: 'D2',
     rationaleD: 'RD2',
     Rationale: 'B',
-    Type: 'MRQ',
+    Type: 'Multiple Response',
     Status: 'Draft',
     CreatedBy: 'system',
     Key: 'B,C',
@@ -89,8 +89,8 @@ describe('ItemsList', () => {
     expect(screen.getByText('Question 2')).toBeInTheDocument();
     
     // Check that type values are shown
-    expect(screen.getByText('MCQ')).toBeInTheDocument();
-    expect(screen.getByText('MRQ')).toBeInTheDocument();
+    expect(screen.getByText('Multiple Choice')).toBeInTheDocument();
+    expect(screen.getByText('Multiple Response')).toBeInTheDocument();
     
     // Check status values
     expect(screen.getByText('Active')).toBeInTheDocument();

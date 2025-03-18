@@ -169,9 +169,9 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
           return `Row ${i + 1}: Key can only contain characters A-H. Received: "${key}" with invalid characters: "${invalidChars.join(', ')}"`;
         }
         
-        // For MCQ, ensure exactly one character is provided
-        if (row.Type === 'MCQ' && key.length !== 1) {
-          return `Row ${i + 1}: MCQ questions must have exactly 1 correct answer in Key. Received: "${key}" (${key.length} characters)`;
+        // For Multiple Choice, ensure exactly one character is provided
+        if (row.Type === 'Multiple Choice' && key.length !== 1) {
+          return `Row ${i + 1}: Multiple Choice questions must have exactly 1 correct answer in Key. Received: "${key}" (${key.length} characters)`;
         }
         
         // Validate that the Key refers to actual options that exist
@@ -417,7 +417,7 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
                 Topic: row.Topic || '',
                 KnowledgeSkills: row.KnowledgeSkills || '',
                 Tags: row.Tags || '',
-                Type: row.Type || 'MCQ',
+                Type: row.Type || 'Multiple Choice',
                 Status: row.Status || 'Draft'
               };
               

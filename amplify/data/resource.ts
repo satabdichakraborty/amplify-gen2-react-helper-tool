@@ -30,8 +30,8 @@ const schema = a.schema({
       Topic: a.string(),                  // Topic category
       KnowledgeSkills: a.string(),        // Knowledge/skills tested
       Tags: a.string(),                   // Tags for searching/filtering
-      Type: a.string(),                   // Question type (MCQ, etc.)
-      Status: a.string(),                 // Status (Draft, Active, etc.)
+      Type: a.string(),                   // Question type (Multiple Choice, Multiple Response, etc.)
+      Status: a.string(),                 // Status of the item (Active, Draft, etc.)
       CreatedBy: a.string(),              // User who created the item
       createdAt: a.datetime(),
       updatedAt: a.datetime()

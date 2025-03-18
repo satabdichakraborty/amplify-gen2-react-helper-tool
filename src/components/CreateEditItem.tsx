@@ -153,21 +153,21 @@ export function CreateEditItem() {
             setRationaleH(item.data.rationaleH || '');
             
             // Determine the question type
-            const qType = item.data.Type || 'MCQ';
-            setIsMultipleResponse(qType === 'MRQ');
+            const qType = item.data.Type || 'Multiple Choice';
+            setIsMultipleResponse(qType === 'Multiple Response');
             
             // Determine how many responses to show based on question type and data
-            let responsesToShow = 4; // Default for MCQ
+            let responsesToShow = 4; // Default for Multiple Choice
             
-            if (qType === 'MRQ') {
-              // For MRQ, show at least 6 responses
+            if (qType === 'Multiple Response') {
+              // For Multiple Response, show at least 6 responses
               responsesToShow = 6;
               
               // But if we have data in G or H, show more
               if (item.data.responseH && item.data.responseH.trim()) responsesToShow = 8;
               else if (item.data.responseG && item.data.responseG.trim()) responsesToShow = 7;
             } else {
-              // For MCQ, always show exactly 4 responses
+              // For Multiple Choice, always show exactly 4 responses
               responsesToShow = 4;
             }
             
@@ -205,10 +205,10 @@ export function CreateEditItem() {
     fetchItem();
   }, [id]);
 
-  // Automatically adjust numResponsesToShow when switching between MCQ and MRQ
+  // Automatically adjust numResponsesToShow when switching between Multiple Choice and Multiple Response
   useEffect(() => {
     if (isMultipleResponse) {
-      // For MRQ, make sure we show at least 6 responses
+      // For Multiple Response, make sure we show at least 6 responses
       if (numResponsesToShow < 6) {
         setNumResponsesToShow(6);
       }
@@ -216,13 +216,13 @@ export function CreateEditItem() {
       // Update the question type
       setIsMultipleResponse(true);
     } else {
-      // For MCQ, show exactly 4 responses
+      // For Multiple Choice, show exactly 4 responses
       setNumResponsesToShow(4);
       
       // Update the question type
       setIsMultipleResponse(false);
       
-      // If switching from MRQ to MCQ, ensure only one answer is selected
+      // If switching from Multiple Response to Multiple Choice, ensure only one answer is selected
       if (correctAnswers.length > 1) {
         setCorrectAnswers([correctAnswers[0]]);
       }
@@ -248,13 +248,13 @@ export function CreateEditItem() {
       return false;
     }
     
-    // If MCQ, ensure only one answer is selected
+    // If Multiple Choice, ensure only one answer is selected
     if (!isMultipleResponse && correctAnswers.length > 1) {
       setError('Multiple Choice questions can only have one correct answer');
       return false;
     }
     
-    // For MRQ, ensure we don't exceed 3 correct answers
+    // For Multiple Response, ensure we don't exceed 3 correct answers
     if (isMultipleResponse && correctAnswers.length > 3) {
       setError('Multiple Response questions cannot have more than 3 correct answers');
       return false;
@@ -332,7 +332,7 @@ export function CreateEditItem() {
         rationaleH: numResponsesToShow >= 8 ? rationaleH : '',
         Key: formattedKey,
         Rationale: rationale,
-        Type: isMultipleResponse ? 'MRQ' : 'MCQ',
+        Type: isMultipleResponse ? 'Multiple Response' : 'Multiple Choice',
         Status: status
       };
       
@@ -636,7 +636,7 @@ export function CreateEditItem() {
                         {numResponsesToShow >= 7 && renderResponseSection('G', responseG, rationaleG, 6)}
                         {numResponsesToShow >= 8 && renderResponseSection('H', responseH, rationaleH, 7)}
                         
-                        {/* Add/Remove response controls for MRQ */}
+                        {/* Add/Remove response controls for Multiple Response */}
                         {isMultipleResponse && (
                           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                             {numResponsesToShow > 6 && (
