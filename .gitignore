@@ -65,3 +65,6 @@ amplifyconfiguration*
 # Amplify outputs
 amplify_outputs.json
 amplify_outputs.backup.json
+
+# csv files
+*.csv
