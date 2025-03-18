@@ -654,8 +654,8 @@ describe('BulkUpload', () => {
     );
 
     // Create a CSV file with a key that refers to a missing response
-    const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseB,responseC,responseD,Key
-123,2023-01-01,Test question,Multiple Choice,Active,Option A,Option B,Option C,,C`;
+    const csvContent = `QuestionId,CreatedDate,Question,Type,Status,responseA,responseC,responseD,Key
+123,2023-01-01,Test question,Multiple Choice,Active,Option A,Option C,Option D,B`;
     
     const file = new File([csvContent], 'invalid.csv', { type: 'text/csv' });
     // Add toString method for tests
@@ -671,10 +671,10 @@ describe('BulkUpload', () => {
     const uploadButton = screen.getByRole('button', { name: /Upload/i });
     await userEvent.click(uploadButton);
     
-    // Verify error message - validation complains about missing responseD first
+    // Verify error message - validation complains about missing responseB header
     await waitFor(() => {
       const alert = screen.getByRole('alert');
-      expect(alert).toHaveTextContent('Row 1: Missing required field "responseD"');
+      expect(alert).toHaveTextContent('Missing required headers: responseB');
     });
   });
 

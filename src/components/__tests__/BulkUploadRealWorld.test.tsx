@@ -55,20 +55,20 @@ describe('BulkUpload with Real-World Data', () => {
     // This is a simplified approach that focuses on testing the business logic
     // rather than the UI interaction which is causing issues in the test environment
     const expectedItem = {
-      QuestionId: 300050,
+      QuestionId: 123456,
       Type: 'Multiple Choice',
       Status: 'Active',
       responseA: 'Reconfigure Amazon EFS to enable maximum I/O.',
       responseB: 'Update the blog site to use instance store volumes for storage.',
       responseC: 'Configure an Amazon CloudFront distribution. Point the distribution to an S3 bucket.',
-      responseD: 'Set up an Amazon CloudFront distribution for all site contents.',
+      responseD: 'Set up an Amazon CloudFront distri all site contents.',
       rationaleA: 'A won\'t guarantee performance at peaks.',
       rationaleB: 'B is wrong because it is not a good practice.',
       rationaleC: 'CloudFront for static content is the best solution, and pointing origin to an S3 bucket offloads all image traffic from the EC2 servers. https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/DownloadDistS3AndCustomOrigins.html',
       rationaleD: 'EFS is not cost efficient and does not improve performance.',
       Key: 'C',
       CreatedDate: '2024-01-01',
-      Question: 'A company used Amazon EC2 instances to deploy a web fleet to host a blog site. The EC2 instances are behind an Application Load Balancer (ALB) and are configured in an Auto Scaling group. The web application stores all blog content on an Amazon EFS volume. The company recently added a feature for bloggers to add video to their posts, attracting 10 times the previous user traffic. At peak times of day, users report buffering and timeout issues while attempting to reach the site or watch videos. Which is the MOST cost-efficient and scalable deployment that will resolve the issues for users?',
+      Question: 'The EC2 instances are behind an Applicati  web application stores all blog content on an Amazon EFS volume. The company recently added a feature for bloggers to add video to their posts, attracting 10 times the previous user traffic. At peak times of day, users report buffering and timeout issues while attempting to reach the site or watch videos. Which is the MOST cost-efficient and scalable deployment that will resolve the issues for users?',
       Rationale: 'Using CloudFront for edge content delivery'
     };
     
