@@ -34,44 +34,72 @@ describe('EditableRationale', () => {
     vi.clearAllMocks();
   });
   
-  it('renders with default values', () => {
+  it('renders with default props', () => {
     render(<EditableRationale value="" onChange={mockOnChange} />);
     
-    // Should show default label
+    // Check for the default label
     expect(screen.getByText('Explanation')).toBeInTheDocument();
     
-    // Should render an empty textarea
-    expect(screen.getByTestId('mock-textarea')).toHaveValue('');
+    // Check if the textarea is rendered
+    const textarea = screen.getByRole('textbox');
+    expect(textarea).toBeInTheDocument();
   });
   
-  it('displays custom label', () => {
+  it('passes custom props correctly', () => {
     render(
       <EditableRationale 
-        value="" 
-        onChange={mockOnChange} 
-        label="Custom Label" 
+        value="Test value" 
+        onChange={mockOnChange}
+        label="Custom Label"
+        rows={8}
       />
     );
     
+    // Check custom label
     expect(screen.getByText('Custom Label')).toBeInTheDocument();
+    
+    // Check if value is set correctly
+    const textarea = screen.getByRole('textbox');
+    expect(textarea).toHaveValue('Test value');
   });
   
-  it('calls onChange when textarea value changes', async () => {
+  it('calls onChange when text changes', () => {
     render(<EditableRationale value="" onChange={mockOnChange} />);
     
-    const textarea = screen.getByTestId('mock-textarea');
+    const textarea = screen.getByRole('textbox');
+    fireEvent.change(textarea, { target: { value: 'New value' } });
     
-    // Change the value directly instead of using userEvent.type
-    fireEvent.change(textarea, { target: { value: 'Test input' } });
-    
-    // Now the onChange should be called once with the whole string
-    expect(mockOnChange).toHaveBeenCalledWith('Test input');
+    expect(mockOnChange).toHaveBeenCalledWith('New value');
   });
   
-  it('applies custom rows value', () => {
+  it('applies custom rows prop', () => {
     render(<EditableRationale value="" onChange={mockOnChange} rows={10} />);
     
-    // TextArea should get the custom rows value
-    expect(screen.getByTestId('mock-textarea')).toHaveAttribute('rows', '10');
+    const textarea = screen.getByRole('textbox');
+    expect(textarea).toHaveAttribute('rows', '10');
+  });
+  
+  it('handles special characters correctly', () => {
+    const textWithSpecialChars = 'Text with special chars: !@#$%^&*().,;:\'"/\\';
+    render(<EditableRationale value={textWithSpecialChars} onChange={mockOnChange} />);
+    
+    const textarea = screen.getByRole('textbox');
+    expect(textarea).toHaveValue(textWithSpecialChars);
+  });
+  
+  it('preserves URLs in textarea value', () => {
+    const textWithUrl = 'Check this link: https://example.com/path?query=value#fragment';
+    render(<EditableRationale value={textWithUrl} onChange={mockOnChange} />);
+    
+    const textarea = screen.getByRole('textbox');
+    expect(textarea).toHaveValue(textWithUrl);
+  });
+  
+  it('handles multiline text with special characters', () => {
+    const multilineText = 'First line\nSecond line with URL: https://example.com\nThird line with symbols: !@#$%^&*()';
+    render(<EditableRationale value={multilineText} onChange={mockOnChange} />);
+    
+    const textarea = screen.getByRole('textbox');
+    expect(textarea).toHaveValue(multilineText);
   });
 }); 

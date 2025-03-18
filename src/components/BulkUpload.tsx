@@ -291,16 +291,16 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
         }
       } else if (char === ',' && !inQuotes) {
         // End of field
-        result.push(currentField.trim());
+        result.push(currentField);
         currentField = '';
       } else {
-        // Regular character
+        // Regular character - preserve exactly as is without any modifications
         currentField += char;
       }
     }
     
-    // Don't forget the last field
-    result.push(currentField.trim());
+    // Don't forget the last field (and don't trim it to preserve whitespace)
+    result.push(currentField);
     
     return result;
   }

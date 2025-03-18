@@ -307,6 +307,8 @@ export function CreateEditItem() {
       // Prepare the item data for save
       const formattedKey = correctAnswers.sort().join(',');
       
+      // Create the item object without any additional processing of rationale fields
+      // This ensures special characters are preserved as-is
       const itemData = {
         QuestionId: questionId,
         CreatedDate: createdDate,

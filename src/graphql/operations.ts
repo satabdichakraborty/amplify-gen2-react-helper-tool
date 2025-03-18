@@ -107,6 +107,7 @@ export async function createItem(item: Partial<Item>): Promise<Item> {
     console.log('createItem called with:', JSON.stringify(item, null, 2));
     
     // Ensure all required fields are present and properly formatted
+    // Keep rationale fields exactly as provided without any trimming or modification
     const itemWithDefaults = {
       ...item,
       // Add default values for required fields that might be missing
@@ -114,7 +115,7 @@ export async function createItem(item: Partial<Item>): Promise<Item> {
       Topic: item.Topic || 'General',
       KnowledgeSkills: item.KnowledgeSkills || 'General',
       // Make sure Key is set if not provided
-      Key: item.Key || item.Rationale?.charAt(0) || 'A',
+      Key: item.Key || (item.Rationale?.charAt(0) || 'A'),
       // Ensure empty strings for optional string fields instead of undefined
       responseE: item.responseE || '',
       responseF: item.responseF || '',
@@ -196,7 +197,7 @@ export async function createItem(item: Partial<Item>): Promise<Item> {
 
 export async function updateItem(id: number, createdDate: string, item: Partial<Omit<Item, 'QuestionId' | 'CreatedDate'>>): Promise<Item> {
   try {
-    // Ensure all required fields are present
+    // Preserve all fields exactly as provided, including special characters in rationales
     const itemWithDefaults = {
       ...item,
       // Add default values for required fields that might be missing
@@ -204,7 +205,7 @@ export async function updateItem(id: number, createdDate: string, item: Partial<
       Topic: item.Topic || 'General',
       KnowledgeSkills: item.KnowledgeSkills || 'General',
       // Make sure Key is set if not provided
-      Key: item.Key || item.Rationale?.charAt(0) || 'A'
+      Key: item.Key || (item.Rationale?.charAt(0) || 'A')
     };
     
     const response = await client.models.Item.update({

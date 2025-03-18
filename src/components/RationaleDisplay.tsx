@@ -9,7 +9,8 @@ interface RationaleDisplayProps {
 
 /**
  * RationaleDisplay renders rationale text with clickable links
- * It preserves whitespace and line breaks from the original text
+ * It preserves whitespace, line breaks, and special characters from the original text
+ * URLs are automatically converted to clickable links
  */
 export const RationaleDisplay: React.FC<RationaleDisplayProps> = ({ text, maxHeight, className }) => {
   if (!text) return null;
@@ -25,6 +26,7 @@ export const RationaleDisplay: React.FC<RationaleDisplayProps> = ({ text, maxHei
         fontFamily: 'inherit',
         fontSize: 'inherit',
         lineHeight: '1.5',
+        padding: '8px 0',
       }}
     >
       {convertUrlsToLinks(text)}

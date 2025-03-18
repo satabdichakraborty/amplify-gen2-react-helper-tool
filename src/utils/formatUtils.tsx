@@ -8,9 +8,13 @@ import * as React from 'react';
 export function convertUrlsToLinks(text: string): React.ReactNode {
   if (!text) return '';
   
-  // Regular expression to match URLs
-  // This matches most common URL formats including http, https, ftp, www.
-  const urlRegex = /(https?:\/\/|www\.)[^\s/$.?#].[^\s]*/gi;
+  // Enhanced regular expression to match URLs
+  // This matches most common URL formats including:
+  // - http, https, ftp protocols
+  // - URLs starting with www.
+  // - Support for query parameters, fragments, paths with special chars
+  // - Support for various TLDs
+  const urlRegex = /(\b(?:https?|ftp):\/\/[-A-Z0-9+&@#/%?=~_|!:,.;]*[-A-Z0-9+&@#/%=~_|]|\bwww\.[-A-Z0-9+&@#/%?=~_|!:,.;]*[-A-Z0-9+&@#/%=~_|])/gi;
   
   const parts: (string | JSX.Element)[] = [];
   let lastIndex = 0;
