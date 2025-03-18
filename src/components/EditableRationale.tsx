@@ -9,19 +9,16 @@ export function EditableRationale({
   value, 
   onChange, 
   label = "Explanation",
-  description = "Provide a general explanation for the correct answer and overall context",
   rows = 6
 }: { 
   value: string; 
   onChange: (newValue: string) => void; 
   label?: string;
-  description?: string;
   rows?: number;
 }) {
   return (
     <FormField
       label={label}
-      description={description}
       stretch
     >
       <div style={{ width: '100%' }}>
