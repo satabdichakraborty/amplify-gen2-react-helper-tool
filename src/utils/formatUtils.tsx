@@ -14,7 +14,7 @@ export function convertUrlsToLinks(text: string): React.ReactNode {
   // - URLs starting with www.
   // - Support for query parameters, fragments, paths with special chars
   // - Support for various TLDs
-  const urlRegex = /(\b(?:https?|ftp):\/\/[-A-Z0-9+&@#/%?=~_|!:,.;]*[-A-Z0-9+&@#/%=~_|]|\bwww\.[-A-Z0-9+&@#/%?=~_|!:,.;]*[-A-Z0-9+&@#/%=~_|])/gi;
+  const urlRegex = /(\b(?:https?|ftp):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|]|\bwww\.[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gi;
   
   const parts: (string | JSX.Element)[] = [];
   let lastIndex = 0;
