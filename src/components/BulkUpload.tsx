@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Modal,
   Button,
@@ -44,6 +44,8 @@ interface CSVRow {
   Type?: string;
   Status?: string;
   CreatedDate: string;
+  CreatedBy?: string;
+  Notes?: string;
 }
 
 // Define a mapping of lowercase header names to their proper case versions
@@ -73,21 +75,32 @@ const headerMapping: Record<string, keyof CSVRow> = {
   'knowledgeskills': 'KnowledgeSkills',
   'tags': 'Tags',
   'type': 'Type',
-  'status': 'Status'
+  'status': 'Status',
+  // Adding mappings for new real-world data format
+  'responseA': 'responseA',
+  'responseB': 'responseB',
+  'responseC': 'responseC',
+  'responseD': 'responseD',
+  'responseE': 'responseE',
+  'responseF': 'responseF',
+  'responseG': 'responseG',
+  'responseH': 'responseH',
+  'createdby': 'CreatedBy',
+  'notes': 'Rationale'
 };
 
 // Define the expected headers
 const expectedHeaders = [
-  'QuestionId', 'CreatedDate', 'Question', 'Type', 'Status',
+  'QuestionId', 'CreatedDate', 'Question', 'Type', 'Status', 'Topic', 'Notes',
   'responseA', 'responseB', 'responseC', 'responseD', 'responseE', 'responseF', 'responseG', 'responseH',
   'rationaleA', 'rationaleB', 'rationaleC', 'rationaleD', 'rationaleE', 'rationaleF', 'rationaleG', 'rationaleH',
-  'Key', 'Rationale', 'Topic', 'KnowledgeSkills', 'Tags'
+  'Key', 'Rationale', 'KnowledgeSkills', 'Tags', 'CreatedBy'
 ];
 
 // Define required headers
 const requiredHeaders = [
   'QuestionId', 'CreatedDate', 'Question', 
-  'responseA', 'responseB', 'responseC', 'responseD'
+  'responseA', 'responseB'
 ];
 
 interface BatchResult {
@@ -102,6 +115,20 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [uploadedCount, setUploadedCount] = useState(0);
+
+  // Expose the component instance for testing
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).BulkUploadInstance = {
+        handleUpload: handleUpload
+      };
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete (window as any).BulkUploadInstance;
+      }
+    };
+  }, [selectedFile]);
 
   function validateCSV(rows: CSVRow[], rawHeaders: string[]): string | null {
     if (rows.length === 0) {
@@ -158,44 +185,21 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
         }
         
         // Check if all characters in the key are valid (A-H)
-        const invalidChars = [];
         for (const char of key) {
-          if (!['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].includes(char)) {
-            invalidChars.push(char);
+          if (!"ABCDEFGH".includes(char)) {
+            return `Row ${i + 1}: Key can only contain characters A-H. Received: "${key}" with invalid characters: "${key.split('').filter(c => !"ABCDEFGH".includes(c)).join('')}"`;
           }
         }
         
-        if (invalidChars.length > 0) {
-          return `Row ${i + 1}: Key can only contain characters A-H. Received: "${key}" with invalid characters: "${invalidChars.join(', ')}"`;
-        }
-        
-        // For Multiple Choice, ensure exactly one character is provided
-        if (row.Type === 'Multiple Choice' && key.length !== 1) {
-          return `Row ${i + 1}: Multiple Choice questions must have exactly 1 correct answer in Key. Received: "${key}" (${key.length} characters)`;
-        }
-        
-        // Validate that the Key refers to actual options that exist
-        const responseOptions = ['responseA', 'responseB', 'responseC', 'responseD', 'responseE', 'responseF', 'responseG', 'responseH'];
-        const missingOptions = [];
-        
-        for (const char of key) {
-          const responseIndex = char.charCodeAt(0) - 65; // 'A' = 0, 'B' = 1, etc.
-          if (responseIndex >= 0 && responseIndex < responseOptions.length) {
-            const optionKey = responseOptions[responseIndex] as keyof CSVRow;
-            if (!row[optionKey] || row[optionKey].trim() === '') {
-              missingOptions.push(char);
-            }
-          }
-        }
-        
-        if (missingOptions.length > 0) {
-          return `Row ${i + 1}: Key "${key}" refers to missing response options: ${missingOptions.join(', ')}. Please ensure all referenced options have content.`;
+        // For Multiple Choice (MCQ), only 1 character is allowed
+        if (row.Type === 'Multiple Choice' && key.length > 1) {
+          return `Row ${i + 1}: Multiple Choice questions can only have one correct answer. Received key: "${key}" (${key.length} characters)`;
         }
       }
       
-      // For backward compatibility, also check Rationale field
-      if (!row.Key && row.Rationale && row.Rationale.trim()) {
-        const firstChars = row.Rationale.trim().substring(0, Math.min(3, row.Rationale.length)).toUpperCase();
+      // If Key is not provided, check if the first character of the Rationale field could be a valid Key
+      if ((!row.Key || row.Key.trim() === '') && row.Rationale) {
+        const firstChars = row.Rationale.trim().substring(0, Math.min(3, row.Rationale.trim().length)).toUpperCase();
         
         // Check if the first 1-3 characters could be a valid key
         let validKey = true;
@@ -211,6 +215,24 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
           // Use the first 1-3 characters as the key
           row.Key = firstChars;
         }
+      }
+
+      // Ensure Type is either "Multiple Choice" or "Multiple Response" if provided
+      if (row.Type && row.Type.trim() !== '') {
+        const type = row.Type.trim();
+        if (type !== 'Multiple Choice' && type !== 'Multiple Response') {
+          // Convert potentially different formats to standard ones
+          if (type.toLowerCase().includes('choice')) {
+            row.Type = 'Multiple Choice';
+          } else if (type.toLowerCase().includes('response') || type.toLowerCase().includes('select')) {
+            row.Type = 'Multiple Response';
+          } else {
+            row.Type = 'Multiple Choice'; // Default
+          }
+        }
+      } else {
+        // Default to Multiple Choice if not specified
+        row.Type = 'Multiple Choice';
       }
     }
 
@@ -256,9 +278,48 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
       
       const row = {} as CSVRow;
 
+      // Convert ResponseA to responseA format if needed
       headers.forEach((header, index) => {
         if (index < values.length) {
-          row[header as keyof CSVRow] = values[index];
+          // Handle special case conversions
+          if (header === 'ResponseA') {
+            row['responseA' as keyof CSVRow] = values[index];
+          } else if (header === 'ResponseB') {
+            row['responseB' as keyof CSVRow] = values[index];
+          } else if (header === 'ResponseC') {
+            row['responseC' as keyof CSVRow] = values[index];
+          } else if (header === 'ResponseD') {
+            row['responseD' as keyof CSVRow] = values[index];
+          } else if (header === 'ResponseE') {
+            row['responseE' as keyof CSVRow] = values[index];
+          } else if (header === 'ResponseF') {
+            row['responseF' as keyof CSVRow] = values[index];
+          } else if (header === 'ResponseG') {
+            row['responseG' as keyof CSVRow] = values[index];
+          } else if (header === 'ResponseH') {
+            row['responseH' as keyof CSVRow] = values[index];
+          } else if (header === 'RationaleA') {
+            row['rationaleA' as keyof CSVRow] = values[index];
+          } else if (header === 'RationaleB') {
+            row['rationaleB' as keyof CSVRow] = values[index];
+          } else if (header === 'RationaleC') {
+            row['rationaleC' as keyof CSVRow] = values[index];
+          } else if (header === 'RationaleD') {
+            row['rationaleD' as keyof CSVRow] = values[index];
+          } else if (header === 'RationaleE') {
+            row['rationaleE' as keyof CSVRow] = values[index];
+          } else if (header === 'RationaleF') {
+            row['rationaleF' as keyof CSVRow] = values[index];
+          } else if (header === 'RationaleG') {
+            row['rationaleG' as keyof CSVRow] = values[index];
+          } else if (header === 'RationaleH') {
+            row['rationaleH' as keyof CSVRow] = values[index];
+          } else if (header === 'Notes' && !row['Rationale']) {
+            // Use Notes as Rationale if Rationale is not set
+            row['Rationale' as keyof CSVRow] = values[index];
+          } else {
+            row[header as keyof CSVRow] = values[index];
+          }
         } else {
           // Set empty string for missing values
           row[header as keyof CSVRow] = '';
@@ -392,6 +453,26 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
                 } as BatchResult;
               }
               
+              // Handle notes field - combine with rationale if it contains useful information
+              let rationale = row.Rationale || '';
+              if (row.Notes && row.Notes.trim() !== '' && !row.Notes.includes('status=') && !row.Notes.toLowerCase().includes('assign to')) {
+                // Extract meaningful parts from notes, ignoring administrative content
+                const notes = row.Notes.trim();
+                const usefulNotes = notes
+                  .split(/\s+/)
+                  .filter((part: string) => 
+                    !part.match(/^\d+\/\d+\/\d+/) && // Ignore dates
+                    !part.match(/^[AP]M$/) && // Ignore AM/PM
+                    !part.includes('status=') && 
+                    !part.toLowerCase().includes('assign')
+                  )
+                  .join(' ');
+                  
+                if (usefulNotes.trim() !== '') {
+                  rationale = rationale ? `${rationale}\n\nAdditional notes: ${usefulNotes}` : usefulNotes;
+                }
+              }
+              
               const itemToCreate = {
                 QuestionId: questionId,
                 CreatedDate: row.CreatedDate,
@@ -413,12 +494,13 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
                 rationaleG: row.rationaleG || '',
                 rationaleH: row.rationaleH || '',
                 Key: correctAnswerKey,
-                Rationale: row.Rationale || '',
+                Rationale: rationale,
                 Topic: row.Topic || '',
                 KnowledgeSkills: row.KnowledgeSkills || '',
                 Tags: row.Tags || '',
                 Type: row.Type || 'Multiple Choice',
-                Status: row.Status || 'Draft'
+                Status: row.Status || 'Draft',
+                CreatedBy: row.CreatedBy || ''
               };
               
               console.log(`Attempting to create item (attempt ${retryCount + 1}/${maxRetries + 1}):`, itemToCreate);
@@ -498,20 +580,22 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
         if (errors.length > 0) {
           // Some items succeeded, some failed
           setError(`Successfully uploaded ${successCount} items, but ${errors.length} items failed. First error: ${errors[0]}`);
+        } else {
+          // All items succeeded
+          setError(null);
+          // Notify the parent component
+          onUploadComplete();
         }
       } else if (errors.length > 0) {
         // All items failed
         setError(`Failed to upload any items. First error: ${errors[0]}`);
-      }
-      
-      setSelectedFile(null);
-      
-      if (successCount > 0) {
-        onUploadComplete();
+      } else {
+        // No items processed
+        setError('No items were processed.');
       }
     } catch (err) {
       console.error('Unexpected error during bulk upload:', err);
-      setError(`Error processing file: ${err instanceof Error ? err.message : String(err)}`);
+      setError(`Unexpected error: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setUploading(false);
     }
@@ -523,6 +607,7 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
     setSuccess(false);
   }
 
+  // Define the file upload component
   return (
     <Modal
       visible={visible}
@@ -547,17 +632,15 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
       <SpaceBetween size="m">
         {error && (
           <div role="alert">
-            <Alert type="error">
-              {error}
+            <Alert type="error" header="Upload error">
+              <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{error}</pre>
             </Alert>
           </div>
         )}
         {success && (
-          <div role="alert">
-            <Alert type="success">
-              Successfully uploaded {uploadedCount} items
-            </Alert>
-          </div>
+          <Alert type="success" header="Upload successful">
+            Successfully uploaded {uploadedCount} items.
+          </Alert>
         )}
         <Box>
           <FormField label="Select CSV file">
@@ -579,7 +662,7 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
               showFileLastModified
               showFileSize
               tokenLimit={1}
-              data-testid="csv-file-input"
+              data-testid="bulk-upload-file-input"
             />
           </FormField>
         </Box>
