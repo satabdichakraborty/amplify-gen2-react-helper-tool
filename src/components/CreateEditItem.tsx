@@ -552,7 +552,6 @@ export function CreateEditItem() {
                           <div>
                             <FormField
                               label="Question ID"
-                              description="A unique identifier for this question"
                             >
                               <Input
                                 value={questionId.toString()}
@@ -563,7 +562,6 @@ export function CreateEditItem() {
                           <div>
                             <FormField
                               label="Created By"
-                              description="User who created this question"
                             >
                               <Input
                                 value={createdBy}
@@ -574,7 +572,6 @@ export function CreateEditItem() {
                           <div>
                             <FormField
                               label="Created Date"
-                              description="Date when this question was created"
                             >
                               <Input
                                 value={createdDate}
@@ -585,7 +582,6 @@ export function CreateEditItem() {
                           <div>
                             <FormField
                               label="Topic"
-                              description="Subject area of the question"
                             >
                               <Input
                                 value={topic}
@@ -596,7 +592,6 @@ export function CreateEditItem() {
                           <div>
                             <FormField
                               label="Knowledge/Skills"
-                              description="Skills being assessed"
                             >
                               <Input
                                 value={knowledgeSkills}
