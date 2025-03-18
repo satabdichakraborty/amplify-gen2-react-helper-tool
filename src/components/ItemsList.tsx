@@ -27,6 +27,29 @@ interface ItemsListProps {
   title?: string;
 }
 
+// Define available columns for table display
+const AVAILABLE_COLUMNS = {
+  id: { id: "id", label: "ID" },
+  question: { id: "question", label: "Question" },
+  type: { id: "type", label: "Type" },
+  status: { id: "status", label: "Status" },
+  key: { id: "key", label: "Correct Answer" },
+  topic: { id: "topic", label: "Topic" },
+  skills: { id: "skills", label: "Knowledge/Skills" },
+  createdDate: { id: "createdDate", label: "Created Date" },
+  createdBy: { id: "createdBy", label: "Created By" },
+  actions: { id: "actions", label: "Actions" },
+};
+
+// Default visible columns
+const DEFAULT_VISIBLE_COLUMNS = ['id', 'question', 'type', 'status', 'createdDate', 'actions'];
+
+// Default preference settings
+const DEFAULT_PREFERENCES = {
+  pageSize: 10,
+  visibleContent: DEFAULT_VISIBLE_COLUMNS
+};
+
 export function ItemsList({ title = 'Items' }: ItemsListProps) {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,10 +65,7 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [preferences, setPreferences] = useState({
-    pageSize: 10,
-    visibleContent: ['id', 'question', 'createdDate', 'actions']
-  });
+  const [preferences, setPreferences] = useState(DEFAULT_PREFERENCES);
   
   // Sorting state
   const [sortingColumn, setSortingColumn] = useState<{
@@ -126,6 +146,20 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
 
   useEffect(() => {
     loadItems();
+  }, []);
+
+  // Load preferences from localStorage on initial render
+  useEffect(() => {
+    const savedPreferences = localStorage.getItem('itemListPreferences');
+    if (savedPreferences) {
+      try {
+        const parsedPreferences = JSON.parse(savedPreferences);
+        setPreferences(parsedPreferences);
+        setPageSize(parsedPreferences.pageSize || 10);
+      } catch (e) {
+        console.error('Error parsing saved preferences:', e);
+      }
+    }
   }, []);
 
   if (error) {
@@ -215,10 +249,46 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
       sortingField: 'Question'
     },
     {
+      id: 'type',
+      header: 'Type',
+      cell: (item: Item) => item.Type || 'N/A',
+      sortingField: 'Type'
+    },
+    {
+      id: 'status',
+      header: 'Status',
+      cell: (item: Item) => item.Status || 'N/A',
+      sortingField: 'Status'
+    },
+    {
+      id: 'key',
+      header: 'Correct Answer',
+      cell: (item: Item) => item.Key || 'N/A',
+      sortingField: 'Key'
+    },
+    {
+      id: 'topic',
+      header: 'Topic',
+      cell: (item: Item) => item.Topic || 'N/A',
+      sortingField: 'Topic'
+    },
+    {
+      id: 'skills',
+      header: 'Knowledge/Skills',
+      cell: (item: Item) => item.KnowledgeSkills || 'N/A',
+      sortingField: 'KnowledgeSkills'
+    },
+    {
       id: 'createdDate',
       header: 'Created Date',
       cell: (item: Item) => new Date(item.CreatedDate).toLocaleString(),
       sortingField: 'CreatedDate'
+    },
+    {
+      id: 'createdBy',
+      header: 'Created By',
+      cell: (item: Item) => item.CreatedBy || 'N/A',
+      sortingField: 'CreatedBy'
     },
     {
       id: 'actions',
@@ -231,7 +301,7 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
           }}>
             View
           </Button>
-          <Button onClick={() => navigate(`/items/${item.QuestionId}/edit`)}>
+          <Button onClick={() => navigate(`/items/edit/${item.QuestionId}`)}>
             Edit
           </Button>
           <Button onClick={() => {
@@ -247,7 +317,16 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
 
   // Manage collection preferences
   const handlePreferencesChange = ({ detail }: any) => {
-    setPreferences(detail);
+    const newPreferences = { ...detail };
+    setPreferences(newPreferences);
+    
+    // Save preferences to localStorage
+    try {
+      localStorage.setItem('itemListPreferences', JSON.stringify(newPreferences));
+    } catch (e) {
+      console.error('Error saving preferences to localStorage:', e);
+    }
+    
     if (detail.pageSize !== pageSize) {
       setPageSize(detail.pageSize);
       setCurrentPage(1); // Reset to first page when page size changes
@@ -298,6 +377,15 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
           header={
             <Header
               counter={`(${items.length})`}
+              actions={
+                <SpaceBetween direction="horizontal" size="xs">
+                  <Button
+                    iconName="refresh"
+                    onClick={loadItems}
+                    ariaLabel="Refresh table"
+                  />
+                </SpaceBetween>
+              }
             >
               Items
             </Header>
@@ -333,12 +421,18 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
                 title: "Select visible columns",
                 options: [
                   {
-                    label: "Main item properties",
+                    label: "Item properties",
                     options: [
-                      { id: "id", label: "ID" },
-                      { id: "question", label: "Question" },
-                      { id: "createdDate", label: "Created Date" },
-                      { id: "actions", label: "Actions" }
+                      AVAILABLE_COLUMNS.id,
+                      AVAILABLE_COLUMNS.question,
+                      AVAILABLE_COLUMNS.type,
+                      AVAILABLE_COLUMNS.status,
+                      AVAILABLE_COLUMNS.key,
+                      AVAILABLE_COLUMNS.topic,
+                      AVAILABLE_COLUMNS.skills,
+                      AVAILABLE_COLUMNS.createdDate,
+                      AVAILABLE_COLUMNS.createdBy,
+                      AVAILABLE_COLUMNS.actions
                     ]
                   }
                 ]
