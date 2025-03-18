@@ -14,7 +14,6 @@ import AppLayout from "@cloudscape-design/components/app-layout";
 import Toggle from "@cloudscape-design/components/toggle";
 import Select, { SelectProps } from "@cloudscape-design/components/select";
 import Checkbox from "@cloudscape-design/components/checkbox";
-import RadioGroup from "@cloudscape-design/components/radio-group";
 import { client } from "../main";
 import { listItems } from '../graphql/operations';
 import { EditableRationale } from './EditableRationale';
@@ -361,8 +360,6 @@ export function CreateEditItem() {
 
   // Action options dropdown
   const actionOptions = [
-    { label: 'Mark as Active', value: 'active', disabled: status === 'Active' },
-    { label: 'Mark as Draft', value: 'draft', disabled: status === 'Draft' },
     { label: 'Run Item Rules', value: 'runRules' },
     { label: 'Generate Rationale', value: 'generateRationale' },
     { label: 'Validate Items', value: 'validateItems' }
@@ -373,11 +370,7 @@ export function CreateEditItem() {
     
     const action = detail.selectedOption.value as string;
     
-    if (action === 'active') {
-      setStatus('Active');
-    } else if (action === 'draft') {
-      setStatus('Draft');
-    } else if (action === 'runRules') {
+    if (action === 'runRules') {
       // Placeholder for Run Item Rules functionality
       alert('Run Item Rules functionality will be implemented later');
     } else if (action === 'generateRationale') {
@@ -449,20 +442,14 @@ export function CreateEditItem() {
                   }}
                 />
               ) : (
-                // For Multiple Choice, use radio button (exactly 1 selection)
-                <RadioGroup
+                // For Multiple Choice, use toggle switch instead of radio button
+                <Toggle
+                  checked={isCorrectAnswer}
                   onChange={({ detail }) => {
-                    if (detail.value === letter) {
+                    if (detail.checked) {
                       setCorrectAnswers([letter]);
                     }
                   }}
-                  value={isCorrectAnswer ? letter : ''}
-                  items={[
-                    {
-                      value: letter,
-                      label: ''
-                    }
-                  ]}
                 />
               )}
             </div>
@@ -486,7 +473,6 @@ export function CreateEditItem() {
                 value={rationaleValue}
                 onChange={(value) => handleResponseChange(index, 'rationale', value)}
                 label="Rationale"
-                description="Explain why this response is correct or incorrect"
                 rows={4}
               />
             </div>
@@ -603,7 +589,6 @@ export function CreateEditItem() {
 
                         <FormField
                           label="Question"
-                          description="The question or scenario presented to the candidate"
                           errorText={error}
                           stretch
                         >
