@@ -111,4 +111,27 @@ describe('ItemsList', () => {
     // Verify navigation occurs
     expect(mockNavigate).toHaveBeenCalledWith('/items/new');
   });
+
+  test('navigates to the correct edit path when Edit button is clicked', async () => {
+    render(
+      <MemoryRouter>
+        <ItemsList />
+      </MemoryRouter>
+    );
+
+    // Wait for items to load
+    await waitFor(() => {
+      expect(screen.getByText('Question 1')).toBeInTheDocument();
+    });
+
+    // Find the first Edit button in the table
+    const editButtons = screen.getAllByText('Edit');
+    expect(editButtons.length).toBeGreaterThan(0);
+    
+    // Click the first Edit button
+    fireEvent.click(editButtons[0]);
+
+    // Verify navigation with the correct path format: /items/:id/edit
+    expect(mockNavigate).toHaveBeenCalledWith('/items/1001/edit');
+  });
 }); 
