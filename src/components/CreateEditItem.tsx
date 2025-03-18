@@ -39,6 +39,9 @@ export function CreateEditItem() {
   const { id } = useParams<{ id: string }>();
   const [questionId, setQuestionId] = useState<number>(id ? parseInt(id, 10) : Math.floor(Math.random() * 1000000));
   const [createdDate, setCreatedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [createdBy, setCreatedBy] = useState<string>('');
+  const [topic, setTopic] = useState<string>('');
+  const [knowledgeSkills, setKnowledgeSkills] = useState<string>('');
   const [question, setQuestion] = useState<string>('');
   const [responseA, setResponseA] = useState<string>('');
   const [responseB, setResponseB] = useState<string>('');
@@ -124,7 +127,10 @@ export function CreateEditItem() {
           if (item?.data) {
             console.log('Item data found, populating form fields with:', item.data);
             setQuestionId(item.data.QuestionId);
-            setCreatedDate(item.data.CreatedDate);
+            setCreatedDate(item.data.CreatedDate || new Date().toISOString().split('T')[0]);
+            setCreatedBy(item.data.CreatedBy || 'System');
+            setTopic(item.data.Topic || '');
+            setKnowledgeSkills(item.data.KnowledgeSkills || '');
             setQuestion(item.data.Question);
             
             // Required responses (A-D)
@@ -305,6 +311,9 @@ export function CreateEditItem() {
       const itemData = {
         QuestionId: questionId,
         CreatedDate: createdDate,
+        CreatedBy: createdBy || 'System',
+        Topic: topic || '',
+        KnowledgeSkills: knowledgeSkills || '',
         Question: question,
         responseA,
         responseB,
@@ -480,11 +489,21 @@ export function CreateEditItem() {
         <SpaceBetween size="l">
           <Container>
             <SpaceBetween size="l">
-              <Header
-                variant="h1"
-              >
-                {id ? 'Edit Item' : 'Create New Item'}
-              </Header>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Header
+                  variant="h1"
+                >
+                  {id ? 'Edit Item' : 'Create New Item'}
+                </Header>
+                <div style={{ width: '250px' }}>
+                  <Select
+                    selectedOption={selectedAction}
+                    onChange={handleActionChange}
+                    options={actionOptions}
+                    placeholder="Select an action"
+                  />
+                </div>
+              </div>
               
               {error && (
                 <div role="alert">
@@ -517,7 +536,7 @@ export function CreateEditItem() {
                       <SpaceBetween size="l">
                         <Header variant="h2">Basic Information</Header>
                         
-                        <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-end' }}>
+                        <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
                           <div style={{ width: '200px' }}>
                             <FormField
                               label="Question ID"
@@ -529,16 +548,47 @@ export function CreateEditItem() {
                               />
                             </FormField>
                           </div>
-                          <div style={{ flex: 1 }}></div>
-                          <div style={{ width: '250px' }}>
+                          <div style={{ width: '200px' }}>
                             <FormField
-                              label="Actions"
+                              label="Created By"
+                              description="User who created this question"
                             >
-                              <Select
-                                selectedOption={selectedAction}
-                                onChange={handleActionChange}
-                                options={actionOptions}
-                                placeholder="Select an action"
+                              <Input
+                                value={createdBy}
+                                disabled
+                              />
+                            </FormField>
+                          </div>
+                          <div style={{ width: '200px' }}>
+                            <FormField
+                              label="Created Date"
+                              description="Date when this question was created"
+                            >
+                              <Input
+                                value={createdDate}
+                                disabled
+                              />
+                            </FormField>
+                          </div>
+                          <div style={{ width: '200px' }}>
+                            <FormField
+                              label="Topic"
+                              description="Subject area of the question"
+                            >
+                              <Input
+                                value={topic}
+                                disabled
+                              />
+                            </FormField>
+                          </div>
+                          <div style={{ width: '200px' }}>
+                            <FormField
+                              label="Knowledge/Skills"
+                              description="Skills being assessed"
+                            >
+                              <Input
+                                value={knowledgeSkills}
+                                disabled
                               />
                             </FormField>
                           </div>
