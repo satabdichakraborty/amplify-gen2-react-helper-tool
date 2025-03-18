@@ -301,7 +301,7 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
           }}>
             View
           </Button>
-          <Button onClick={() => navigate(`/items/edit/${item.QuestionId}`)}>
+          <Button onClick={() => navigate(`/items/${item.QuestionId}/edit`)}>
             Edit
           </Button>
           <Button onClick={() => {
