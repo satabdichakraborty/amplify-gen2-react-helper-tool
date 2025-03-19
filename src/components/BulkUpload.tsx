@@ -192,7 +192,7 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
       });
       
       errorMessage += `\nActual Headers: ${rawHeaders.join(', ')}\n\n`;
-      errorMessage += `Required Headers: ${requiredHeaders.join(', ')}`;
+      errorMessage += `Expected Headers: ${requiredHeaders.join(', ')}`;
       
       return errorMessage;
     }
