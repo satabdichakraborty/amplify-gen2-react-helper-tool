@@ -199,12 +199,17 @@ export function CreateEditItem() {
             let responsesToShow = 4; // Default for Multiple Choice
             
             if (qType === 'Multiple Response') {
-              // For Multiple Response, show at least 6 responses
-              responsesToShow = 6;
+              // For Multiple Response, show 5 responses minimum, 6 maximum
+              const hasValidE = item.data.responseE && item.data.responseE.trim() !== '';
+              const hasValidF = item.data.responseF && item.data.responseF.trim() !== '';
               
-              // But if we have data in G or H, show more
-              if (item.data.responseH && item.data.responseH.trim()) responsesToShow = 8;
-              else if (item.data.responseG && item.data.responseG.trim()) responsesToShow = 7;
+              if (hasValidE && hasValidF) {
+                responsesToShow = 6;
+              } else if (hasValidE) {
+                responsesToShow = 5;
+              } else {
+                responsesToShow = 5; // Default minimum for Multiple Response
+              }
             } else {
               // For Multiple Choice, always show exactly 4 responses
               responsesToShow = 4;
@@ -244,11 +249,13 @@ export function CreateEditItem() {
     fetchItem();
   }, [id]);
 
-  // Automatically adjust numResponsesToShow when switching between Multiple Choice and Multiple Response
+  // Modify the useEffect for question type switching to enforce new limits
   useEffect(() => {
     if (isMultipleResponse) {
-      // For Multiple Response, make sure we show at least 6 responses
-      if (numResponsesToShow < 6) {
+      // For Multiple Response, show exactly 5 responses by default, max 6
+      if (numResponsesToShow < 5) {
+        setNumResponsesToShow(5);
+      } else if (numResponsesToShow > 6) {
         setNumResponsesToShow(6);
       }
       
@@ -452,20 +459,20 @@ export function CreateEditItem() {
     setTimeout(() => setSelectedAction(null), 500);
   };
 
-  // Add/remove response options for Multiple Response
+  // Update the handleAddResponse and handleRemoveResponse functions
   const handleAddResponse = () => {
-    if (numResponsesToShow < 8) {
+    if (isMultipleResponse && numResponsesToShow < 6) {
       setNumResponsesToShow(numResponsesToShow + 1);
     }
   };
 
   const handleRemoveResponse = () => {
-    if (numResponsesToShow > 4) {
+    if (isMultipleResponse && numResponsesToShow > 5) {
       const newNum = numResponsesToShow - 1;
       setNumResponsesToShow(newNum);
       
       // If removing a response that was marked as correct, update correctAnswers
-      const letterToRemove = String.fromCharCode(64 + numResponsesToShow); // E.g., 5 -> 'E'
+      const letterToRemove = String.fromCharCode(64 + numResponsesToShow); // E.g., 6 -> 'F'
       if (correctAnswers.includes(letterToRemove)) {
         setCorrectAnswers(correctAnswers.filter(l => l !== letterToRemove));
       }
@@ -479,6 +486,11 @@ export function CreateEditItem() {
     rationaleValue: string, 
     index: number
   ) => {
+    // For optional responses (E, F), don't render if empty
+    if (index >= 4 && !responseValue.trim()) {
+      return null;
+    }
+    
     const isCorrectAnswer = correctAnswers.includes(letter);
     const canSelectMore = isMultipleResponse && (correctAnswers.length < 3 || isCorrectAnswer);
 
@@ -773,21 +785,19 @@ export function CreateEditItem() {
                           {renderResponseSection('C', responseC, rationaleC, 2)}
                           {renderResponseSection('D', responseD, rationaleD, 3)}
                           
-                          {/* Conditional responses E-H based on numResponsesToShow */}
+                          {/* Conditional responses E-F based on numResponsesToShow and content */}
                           {numResponsesToShow >= 5 && renderResponseSection('E', responseE, rationaleE, 4)}
                           {numResponsesToShow >= 6 && renderResponseSection('F', responseF, rationaleF, 5)}
-                          {numResponsesToShow >= 7 && renderResponseSection('G', responseG, rationaleG, 6)}
-                          {numResponsesToShow >= 8 && renderResponseSection('H', responseH, rationaleH, 7)}
                           
                           {/* Add/Remove response controls for Multiple Response */}
                           {isMultipleResponse && (
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                              {numResponsesToShow > 6 && (
+                              {numResponsesToShow > 5 && (
                                 <Button onClick={handleRemoveResponse}>
                                   Remove Response
                                 </Button>
                               )}
-                              {numResponsesToShow < 8 && (
+                              {numResponsesToShow < 6 && (
                                 <Button onClick={handleAddResponse}>
                                   Add Response
                                 </Button>
