@@ -24,6 +24,31 @@ export type GeneratedRationaleResponse = {
   llmGeneralRationale: string;
 };
 
+// Type definition for Lambda event
+export interface LambdaEvent {
+  arguments?: {
+    question: string;
+    responseA: string;
+    responseB: string;
+    responseC: string;
+    responseD: string;
+    responseE?: string;
+    responseF?: string;
+    type: string;
+  };
+  body?: {
+    question: string;
+    responseA: string;
+    responseB: string;
+    responseC: string;
+    responseD: string;
+    responseE?: string;
+    responseF?: string;
+    type: string;
+  };
+  [key: string]: any;
+}
+
 // Create the prompt for the model
 export function createPrompt(request: GenerateRationaleRequest): string {
   // Extract the question and response options
@@ -160,22 +185,44 @@ export async function callBedrock(prompt: string): Promise<string> {
   }
 }
 
-// Type for the Lambda event
-export type LambdaEvent = {
-  arguments?: GenerateRationaleRequest;
-  body?: GenerateRationaleRequest;
-} & Record<string, any>;
-
 // Main handler function
 export async function handler(event: LambdaEvent) {
   try {
     console.log('Received event:', JSON.stringify(event));
     
-    // Parse the request
-    const request: GenerateRationaleRequest = event.arguments ?? event.body ?? event;
+    // Extract request data from event
+    let requestData: GenerateRationaleRequest;
+    
+    if (event.arguments) {
+      // Make sure the type is properly converted to the expected string literal type
+      requestData = {
+        question: event.arguments.question,
+        responseA: event.arguments.responseA,
+        responseB: event.arguments.responseB,
+        responseC: event.arguments.responseC,
+        responseD: event.arguments.responseD,
+        responseE: event.arguments.responseE,
+        responseF: event.arguments.responseF,
+        type: event.arguments.type as 'Multiple Choice' | 'Multiple Response'
+      };
+    } else if (event.body) {
+      requestData = {
+        question: event.body.question,
+        responseA: event.body.responseA,
+        responseB: event.body.responseB,
+        responseC: event.body.responseC,
+        responseD: event.body.responseD,
+        responseE: event.body.responseE,
+        responseF: event.body.responseF,
+        type: event.body.type as 'Multiple Choice' | 'Multiple Response'
+      };
+    } else {
+      // Fallback to the event itself, but this requires type assertion
+      requestData = event as unknown as GenerateRationaleRequest;
+    }
     
     // Create the prompt
-    const prompt = createPrompt(request);
+    const prompt = createPrompt(requestData);
     
     // Call the LLM
     const responseText = await callBedrock(prompt);

@@ -1,8 +1,8 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { createPrompt, parseModelResponse, callBedrock, handler, type GeneratedRationaleResponse } from './handler';
+import { createPrompt, parseModelResponse, callBedrock, handler, type GeneratedRationaleResponse, type LambdaEvent } from './handler';
 
 // Mock the AWS SDK with a properly formatted Claude 3.7 Sonnet response
-vi.mock('@aws-sdk/client-bedrock-runtime', () => {
+vi.mock('@aws-sdk/client-bedrock-runtime', async () => {
   const mockResponseBody = {
     id: "msg_0123456789abcdef",
     type: "message",
@@ -87,14 +87,14 @@ describe('generateRationale Lambda', () => {
     const prompt = "Test prompt";
     const response = await callBedrock(prompt);
     
-    // Get the imported mocks
-    const { BedrockRuntimeClient, InvokeModelCommand } = await import('@aws-sdk/client-bedrock-runtime');
+    // Import the mocked module
+    const bedrockModule = await import('@aws-sdk/client-bedrock-runtime');
     
     // Verify Bedrock client was initialized
-    expect(BedrockRuntimeClient).toHaveBeenCalled();
+    expect(bedrockModule.BedrockRuntimeClient).toHaveBeenCalled();
     
     // Verify InvokeModelCommand was called with the correct model ID
-    expect(InvokeModelCommand).toHaveBeenCalledWith(expect.objectContaining({
+    expect(bedrockModule.InvokeModelCommand).toHaveBeenCalledWith(expect.objectContaining({
       modelId: 'anthropic.claude-3-7-sonnet-20240620-v1:0',
       contentType: 'application/json',
       accept: 'application/json',
@@ -102,7 +102,7 @@ describe('generateRationale Lambda', () => {
     }));
     
     // Verify the body contains the correct prompt structure for Claude 3.7
-    const commandCall = InvokeModelCommand.mock.calls[0][0];
+    const commandCall = bedrockModule.InvokeModelCommand.mock.calls[0][0];
     const requestBody = JSON.parse(commandCall.body);
     expect(requestBody.messages[0].role).toBe("user");
     expect(requestBody.messages[0].content).toBe(prompt);
@@ -114,7 +114,8 @@ describe('generateRationale Lambda', () => {
   });
 
   test('handler correctly processes events', async () => {
-    const event = {
+    // Create the event with the proper type annotation
+    const event: LambdaEvent = {
       arguments: {
         question: 'What is the capital of France?',
         responseA: 'London',
