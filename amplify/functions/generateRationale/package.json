@@ -1,9 +1,25 @@
 {
-  "name": "generate-rationale",
+  "name": "generateRationale",
   "version": "1.0.0",
   "description": "Lambda function for generating rationales using Amazon Bedrock",
-  "main": "handler.js",
+  "main": "index.js",
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.521.0"
-  }
-} 
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "vitest": "^3.0.9"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "aws",
+    "lambda",
+    "bedrock",
+    "claude",
+    "ai"
+  ],
+  "author": "",
+  "license": "ISC"
+}
