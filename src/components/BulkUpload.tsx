@@ -118,17 +118,17 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
 
   // Expose the component instance for testing
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      (window as any).BulkUploadInstance = {
-        handleUpload: handleUpload
+    if (process.env.NODE_ENV === 'test') {
+      (window as any).bulkUploadInstance = {
+        handleUpload
       };
     }
     return () => {
-      if (typeof window !== 'undefined') {
-        delete (window as any).BulkUploadInstance;
+      if (process.env.NODE_ENV === 'test') {
+        delete (window as any).bulkUploadInstance;
       }
     };
-  }, [selectedFile]);
+  }, []);
 
   function validateCSV(rows: CSVRow[], rawHeaders: string[]): string | null {
     if (rows.length === 0) {
@@ -338,6 +338,7 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
     let currentField = '';
     let inQuotes = false;
     
+    // Enhanced parsing to correctly handle URLs with commas in quoted fields
     for (let i = 0; i < line.length; i++) {
       const char = line[i];
       
@@ -351,16 +352,17 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
           inQuotes = !inQuotes;
         }
       } else if (char === ',' && !inQuotes) {
-        // End of field
+        // End of field - only if not inside quotes
         result.push(currentField);
         currentField = '';
       } else {
-        // Regular character - preserve exactly as is without any modifications
+        // Regular character - preserve exactly as is
+        // This includes commas, URLs, and special chars inside quoted fields
         currentField += char;
       }
     }
     
-    // Don't forget the last field (and don't trim it to preserve whitespace)
+    // Add the last field (and don't trim it to preserve whitespace)
     result.push(currentField);
     
     return result;
