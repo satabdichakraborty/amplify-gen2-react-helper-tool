@@ -120,14 +120,6 @@ const headerMapping: Record<string, keyof CSVRow> = {
   'CreatedBy': 'CreatedBy'
 };
 
-// Define the expected headers
-const expectedHeaders = [
-  'QuestionId', 'CreatedDate', 'Question', 'Type', 'Status', 'Topic', 'Notes',
-  'responseA', 'responseB', 'responseC', 'responseD', 'responseE', 'responseF', 'responseG', 'responseH',
-  'rationaleA', 'rationaleB', 'rationaleC', 'rationaleD', 'rationaleE', 'rationaleF', 'rationaleG', 'rationaleH',
-  'Key', 'Rationale', 'KnowledgeSkills', 'Tags', 'CreatedBy'
-];
-
 // Define required headers
 const requiredHeaders = [
   'QuestionId', 'CreatedDate', 'Question', 
@@ -191,7 +183,7 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
       // Suggest possible matches for each missing header
       missingRequiredHeaders.forEach(missingHeader => {
         const possible = Object.entries(headerMapping)
-          .filter(([key, value]) => value === missingHeader)
+          .filter(([_, value]) => value === missingHeader)
           .map(([key]) => key);
         
         if (possible.length > 0) {

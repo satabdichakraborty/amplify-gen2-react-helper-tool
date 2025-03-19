@@ -284,18 +284,29 @@ export async function generateRationaleWithLLM(item: Partial<Item>): Promise<Gen
     console.log('Calling generateRationale Lambda with payload:', payload);
     
     try {
-      // Call the Lambda function through Amplify
-      const response = await client.functions.generateRationale({
-        arguments: payload
+      // For Amplify Gen2, we need to use a different approach to call Lambda functions
+      // Using fetch to call the API endpoint directly
+      const response = await fetch('/api/generateRationale', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
       });
       
-      console.log('Response from Lambda:', response);
+      if (!response.ok) {
+        throw new Error(`API responded with status: ${response.status}`);
+      }
       
-      if (!response || !response.body) {
+      const data = await response.json();
+      
+      console.log('Response from Lambda:', data);
+      
+      if (!data) {
         throw new Error('Empty response from Lambda function');
       }
       
-      return response.body as GeneratedRationale;
+      return data as GeneratedRationale;
     } catch (apiError) {
       console.error('Error calling Lambda function:', apiError);
       throw apiError;
