@@ -132,11 +132,16 @@ export async function callBedrock(prompt: string): Promise<string> {
     const parsedResponse = JSON.parse(responseBody);
     
     // Claude 3.7 response format has content in the message
-    if (parsedResponse && parsedResponse.content && parsedResponse.content.length > 0) {
-      return parsedResponse.content[0].text;
+    if (parsedResponse && parsedResponse.content && Array.isArray(parsedResponse.content)) {
+      // Find the text content - Claude 3.7 returns content as an array of different types
+      const textContent = parsedResponse.content.find(item => item.type === 'text');
+      if (textContent && textContent.text) {
+        return textContent.text;
+      }
     }
     
-    // Fallback if response format is different
+    // If we can't find the expected format, return the whole response as a string
+    console.log('Unexpected response format from Claude 3.7:', parsedResponse);
     return responseBody;
     
   } catch (error) {
