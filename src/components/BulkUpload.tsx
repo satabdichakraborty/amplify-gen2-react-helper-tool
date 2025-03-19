@@ -304,7 +304,7 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
     const headers: string[] = rawHeaders.map(header => {
       const lowerHeader = header.toLowerCase().trim();
       const mappedHeader = headerMapping[lowerHeader];
-      console.log(`Mapping header: "${header}" (${lowerHeader}) -> ${mappedHeader || 'unmapped'}`);
+      console.log(`Mapping header: "${header}" (${lowerHeader}) -> ${mappedHeader || header}`);
       return mappedHeader || header;
     });
     
@@ -320,53 +320,51 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
       // Parse CSV line with proper handling of quoted fields
       const values = parseCSVLine(line);
       
-      // Skip if we don't have enough values
-      if (values.length < requiredHeaders.length) {
-        console.warn(`Skipping row ${i} due to insufficient values. Required: ${requiredHeaders.length}, Found: ${values.length}`);
+      // Skip if we don't have enough values for required fields
+      const minRequiredValues = Math.max(
+        ...requiredHeaders.map(header => {
+          const headerIndex = headers.indexOf(header);
+          return headerIndex !== -1 ? headerIndex + 1 : 0;
+        })
+      );
+      
+      if (values.length < minRequiredValues) {
+        console.warn(`Skipping row ${i} due to insufficient values. Required: ${minRequiredValues}, Found: ${values.length}`);
         continue;
       }
       
       const row = {} as CSVRow;
 
-      // Apply values to fields using the normalized headers
-      // Ignore any extra columns that we don't need
+      // First, handle compatibility with existing header mappings
+      // This ensures test cases with exact header matches continue to work
       for (let j = 0; j < headers.length; j++) {
-        const header = headers[j];
-        
-        // Skip columns we don't recognize (don't have in our CSVRow interface)
-        if (!Object.values(headerMapping).includes(header as any) && 
-            !requiredHeaders.includes(header)) {
-          console.log(`Ignoring unrecognized column: ${rawHeaders[j]}`);
-          continue;
-        }
-        
-        // Apply the field value if we have it
         if (j < values.length) {
+          const header = headers[j];
           const value = values[j];
           
-          // Special case for Notes -> Rationale mapping
-          if (header === 'Notes' && !row['Rationale']) {
-            row['Rationale' as keyof CSVRow] = value;
-          } else {
-            if (header in row) {
-              // This is a recognized field in our row object
+          // Direct assignment for exact header matches
+          if (header in row || Object.values(headerMapping).includes(header as any)) {
+            try {
               row[header as keyof CSVRow] = value;
+            } catch (e) {
+              console.warn(`Error assigning value to ${header}:`, e);
             }
-          }
-        } else {
-          // Set empty string for missing values in required fields
-          if (requiredHeaders.includes(header)) {
-            row[header as keyof CSVRow] = '';
           }
         }
       }
-
+      
+      // Now handle special cases and ensure required fields
+      // Apply special mapping for Notes -> Rationale if needed
+      if (!row['Rationale'] && (row['Notes'] || '').length > 0) {
+        row['Rationale'] = row['Notes'];
+      }
+      
       // Ensure all required fields are present
-      requiredHeaders.forEach(header => {
-        if (!row[header as keyof CSVRow]) {
-          row[header as keyof CSVRow] = '';
+      for (const requiredHeader of requiredHeaders) {
+        if (!row[requiredHeader as keyof CSVRow]) {
+          row[requiredHeader as keyof CSVRow] = '';
         }
-      });
+      }
 
       rows.push(row);
     }
