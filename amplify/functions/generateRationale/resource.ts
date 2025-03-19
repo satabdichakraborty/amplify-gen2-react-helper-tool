@@ -7,13 +7,6 @@ export const generateRationale = defineFunction({
   entry: './handler.ts',
   environment: {
     REGION: 'us-east-1', // Adjust region as needed for Bedrock availability
-  },
-  // Use inline policy directly in the function definition
-  access: {
-    auth: {
-      actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
-      resources: ['arn:aws:bedrock:*:*:model/anthropic.claude-3-7-sonnet-20240620-v1:0']
-    }
   }
 });
 
