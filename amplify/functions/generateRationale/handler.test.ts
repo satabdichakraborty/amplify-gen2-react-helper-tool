@@ -102,7 +102,7 @@ describe('generateRationale Lambda', () => {
     }));
     
     // Verify the body contains the correct prompt structure for Claude 3.7
-    const commandCall = bedrockModule.InvokeModelCommand.mock.calls[0][0];
+    const commandCall = (bedrockModule.InvokeModelCommand as jest.MockedFunction<typeof bedrockModule.InvokeModelCommand>).mock.calls[0][0];
     const requestBody = JSON.parse(commandCall.body);
     expect(requestBody.messages[0].role).toBe("user");
     expect(requestBody.messages[0].content).toBe(prompt);
