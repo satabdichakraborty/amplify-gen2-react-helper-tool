@@ -76,17 +76,48 @@ const headerMapping: Record<string, keyof CSVRow> = {
   'tags': 'Tags',
   'type': 'Type',
   'status': 'Status',
-  // Adding mappings for new real-world data format
-  'responseA': 'responseA',
-  'responseB': 'responseB',
-  'responseC': 'responseC',
-  'responseD': 'responseD',
-  'responseE': 'responseE',
-  'responseF': 'responseF',
-  'responseG': 'responseG',
-  'responseH': 'responseH',
   'createdby': 'CreatedBy',
-  'notes': 'Rationale'
+  'notes': 'Notes',
+  // Adding mappings for common real-world data formats with spaces
+  'response a': 'responseA',
+  'response b': 'responseB',
+  'response c': 'responseC',
+  'response d': 'responseD',
+  'response e': 'responseE',
+  'response f': 'responseF',
+  'response g': 'responseG',
+  'response h': 'responseH',
+  'rationale a': 'rationaleA',
+  'rationale b': 'rationaleB',
+  'rationale c': 'rationaleC',
+  'rationale d': 'rationaleD',
+  'rationale e': 'rationaleE',
+  'rationale f': 'rationaleF',
+  'rationale g': 'rationaleG',
+  'rationale h': 'rationaleH',
+  'created date': 'CreatedDate',
+  'created by': 'CreatedBy',
+  'knowledge skills': 'KnowledgeSkills',
+  'question id': 'QuestionId',
+  // Add common variations with different capitalization
+  'ResponseA': 'responseA',
+  'ResponseB': 'responseB',
+  'ResponseC': 'responseC',
+  'ResponseD': 'responseD',
+  'ResponseE': 'responseE',
+  'ResponseF': 'responseF',
+  'ResponseG': 'responseG',
+  'ResponseH': 'responseH',
+  'RationaleA': 'rationaleA',
+  'RationaleB': 'rationaleB',
+  'RationaleC': 'rationaleC',
+  'RationaleD': 'rationaleD',
+  'RationaleE': 'rationaleE',
+  'RationaleF': 'rationaleF',
+  'RationaleG': 'rationaleG',
+  'RationaleH': 'rationaleH',
+  'QuestionID': 'QuestionId',
+  'CreatedBy': 'CreatedBy'
 };
 
 // Define the expected headers
@@ -136,7 +167,7 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
     }
 
     // Check for missing required headers
-    const normalizedHeaders = rawHeaders.map(h => h.toLowerCase());
+    const normalizedHeaders = rawHeaders.map(h => h.toLowerCase().trim());
     const missingRequiredHeaders = requiredHeaders.filter(header => {
       const lowerHeader = header.toLowerCase();
       
@@ -154,7 +185,24 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
     });
 
     if (missingRequiredHeaders.length > 0) {
-      return `Missing required headers: ${missingRequiredHeaders.join(', ')}\n\nActual Headers: ${rawHeaders.join(', ')}\n\nExpected Headers: ${expectedHeaders.join(', ')}`;
+      // Provide a more helpful error message with possible mappings
+      let errorMessage = `Missing required headers: ${missingRequiredHeaders.join(', ')}\n\n`;
+      
+      // Suggest possible matches for each missing header
+      missingRequiredHeaders.forEach(missingHeader => {
+        const possible = Object.entries(headerMapping)
+          .filter(([key, value]) => value === missingHeader)
+          .map(([key]) => key);
+        
+        if (possible.length > 0) {
+          errorMessage += `For "${missingHeader}", we accept: ${possible.join(', ')}\n`;
+        }
+      });
+      
+      errorMessage += `\nActual Headers: ${rawHeaders.join(', ')}\n\n`;
+      errorMessage += `Required Headers: ${requiredHeaders.join(', ')}`;
+      
+      return errorMessage;
     }
 
     for (let i = 0; i < rows.length; i++) {
@@ -254,8 +302,10 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
     
     // Map raw headers to proper case headers using the headerMapping
     const headers: string[] = rawHeaders.map(header => {
-      const lowerHeader = header.toLowerCase();
-      return headerMapping[lowerHeader] || header;
+      const lowerHeader = header.toLowerCase().trim();
+      const mappedHeader = headerMapping[lowerHeader];
+      console.log(`Mapping header: "${header}" (${lowerHeader}) -> ${mappedHeader || 'unmapped'}`);
+      return mappedHeader || header;
     });
     
     console.log('CSV Headers (normalized):', headers);
@@ -271,57 +321,49 @@ export function BulkUpload({ visible, onDismiss, onUploadComplete }: BulkUploadP
       const values = parseCSVLine(line);
       
       // Skip if we don't have enough values
-      if (values.length < headers.length / 2) {
-        console.warn(`Skipping row ${i} due to insufficient values`);
+      if (values.length < requiredHeaders.length) {
+        console.warn(`Skipping row ${i} due to insufficient values. Required: ${requiredHeaders.length}, Found: ${values.length}`);
         continue;
       }
       
       const row = {} as CSVRow;
 
-      // Convert ResponseA to responseA format if needed
-      headers.forEach((header, index) => {
-        if (index < values.length) {
-          // Handle special case conversions
-          if (header === 'ResponseA') {
-            row['responseA' as keyof CSVRow] = values[index];
-          } else if (header === 'ResponseB') {
-            row['responseB' as keyof CSVRow] = values[index];
-          } else if (header === 'ResponseC') {
-            row['responseC' as keyof CSVRow] = values[index];
-          } else if (header === 'ResponseD') {
-            row['responseD' as keyof CSVRow] = values[index];
-          } else if (header === 'ResponseE') {
-            row['responseE' as keyof CSVRow] = values[index];
-          } else if (header === 'ResponseF') {
-            row['responseF' as keyof CSVRow] = values[index];
-          } else if (header === 'ResponseG') {
-            row['responseG' as keyof CSVRow] = values[index];
-          } else if (header === 'ResponseH') {
-            row['responseH' as keyof CSVRow] = values[index];
-          } else if (header === 'RationaleA') {
-            row['rationaleA' as keyof CSVRow] = values[index];
-          } else if (header === 'RationaleB') {
-            row['rationaleB' as keyof CSVRow] = values[index];
-          } else if (header === 'RationaleC') {
-            row['rationaleC' as keyof CSVRow] = values[index];
-          } else if (header === 'RationaleD') {
-            row['rationaleD' as keyof CSVRow] = values[index];
-          } else if (header === 'RationaleE') {
-            row['rationaleE' as keyof CSVRow] = values[index];
-          } else if (header === 'RationaleF') {
-            row['rationaleF' as keyof CSVRow] = values[index];
-          } else if (header === 'RationaleG') {
-            row['rationaleG' as keyof CSVRow] = values[index];
-          } else if (header === 'RationaleH') {
-            row['rationaleH' as keyof CSVRow] = values[index];
-          } else if (header === 'Notes' && !row['Rationale']) {
-            // Use Notes as Rationale if Rationale is not set
-            row['Rationale' as keyof CSVRow] = values[index];
+      // Apply values to fields using the normalized headers
+      // Ignore any extra columns that we don't need
+      for (let j = 0; j < headers.length; j++) {
+        const header = headers[j];
+        
+        // Skip columns we don't recognize (don't have in our CSVRow interface)
+        if (!Object.values(headerMapping).includes(header as any) && 
+            !requiredHeaders.includes(header)) {
+          console.log(`Ignoring unrecognized column: ${rawHeaders[j]}`);
+          continue;
+        }
+        
+        // Apply the field value if we have it
+        if (j < values.length) {
+          const value = values[j];
+          
+          // Special case for Notes -> Rationale mapping
+          if (header === 'Notes' && !row['Rationale']) {
+            row['Rationale' as keyof CSVRow] = value;
           } else {
-            row[header as keyof CSVRow] = values[index];
+            if (header in row) {
+              // This is a recognized field in our row object
+              row[header as keyof CSVRow] = value;
+            }
           }
         } else {
-          // Set empty string for missing values
+          // Set empty string for missing values in required fields
+          if (requiredHeaders.includes(header)) {
+            row[header as keyof CSVRow] = '';
+          }
+        }
+      }
+
+      // Ensure all required fields are present
+      requiredHeaders.forEach(header => {
+        if (!row[header as keyof CSVRow]) {
           row[header as keyof CSVRow] = '';
         }
       });
