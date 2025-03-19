@@ -88,25 +88,27 @@ export async function listItems(): Promise<Item[]> {
     console.log('List items response received:', response);
     
     // Verify that the response has the expected structure
-    if (!response || !response.data) {
-      console.error('Invalid response from list operation:', response);
-      throw new Error('Invalid response from database: empty or missing data');
+    if (!response) {
+      console.error('Invalid response from list operation: undefined or null');
+      return []; // Return empty array for empty database
+    }
+    
+    if (!response.data) {
+      console.error('Invalid response from list operation: missing data property', response);
+      return []; // Return empty array for no data
     }
     
     if (!Array.isArray(response.data)) {
       console.error('Invalid data type in response:', response.data);
-      throw new Error('Invalid response data type: expected an array');
+      return []; // Return empty array for non-array data
     }
     
     console.log(`Successfully retrieved ${response.data.length} items from the database`);
     return response.data as unknown as Item[];
   } catch (error) {
     console.error('Error in listItems:', error);
-    // Rethrow the error with a more user-friendly message
-    if (error instanceof Error) {
-      throw new Error(`Failed to retrieve items: ${error.message}`);
-    }
-    throw error;
+    // Return empty array instead of throwing for UI to handle more gracefully
+    return [];
   }
 }
 
@@ -279,44 +281,25 @@ export async function generateRationaleWithLLM(item: Partial<Item>): Promise<Gen
       type: item.Type
     };
     
-    // Call the Lambda function through Amplify
     console.log('Calling generateRationale Lambda with payload:', payload);
     
-    // Using fetch to call the API endpoint directly since Amplify v6 client structure is different
-    // In a real implementation, you would use the correct Amplify API to invoke a Lambda function
-    // This is a temporary implementation that will work until you set up the proper Amplify function invocation
-    const API_URL = process.env.REACT_APP_API_URL || 'YOUR_API_ENDPOINT';
-    const response = await fetch(`${API_URL}/generateRationale`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // Add authorization header if needed
-        // 'Authorization': `Bearer ${(await client.auth.getCredentials()).accessToken}`
-      },
-      body: JSON.stringify(payload)
-    });
-    
-    if (!response.ok) {
-      throw new Error(`API responded with status: ${response.status}`);
+    try {
+      // Call the Lambda function through Amplify
+      const response = await client.functions.generateRationale({
+        arguments: payload
+      });
+      
+      console.log('Response from Lambda:', response);
+      
+      if (!response || !response.body) {
+        throw new Error('Empty response from Lambda function');
+      }
+      
+      return response.body as GeneratedRationale;
+    } catch (apiError) {
+      console.error('Error calling Lambda function:', apiError);
+      throw apiError;
     }
-    
-    const data = await response.json();
-    
-    // For development/testing: return mock data if API call fails
-    if (!data) {
-      console.log('Using mock response due to empty API response');
-      return {
-        llmKey: 'C',
-        llmRationaleA: 'Option A is incorrect because...',
-        llmRationaleB: 'Option B is incorrect because...',
-        llmRationaleC: 'Option C is correct because...',
-        llmRationaleD: 'Option D is incorrect because...',
-        llmGeneralRationale: 'Option C is the correct answer because...'
-      };
-    }
-    
-    console.log('Response from Lambda:', data);
-    return data as GeneratedRationale;
   } catch (error) {
     console.error('Error generating rationale:', error);
     
