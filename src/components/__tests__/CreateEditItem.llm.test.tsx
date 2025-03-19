@@ -57,8 +57,12 @@ vi.mock('../../graphql/operations', () => {
     listItems: vi.fn().mockResolvedValue({ items: [] }),
     updateItem: vi.fn().mockResolvedValue({ success: true }),
     generateRationaleWithLLM: vi.fn().mockResolvedValue({
-      content: 'AI generated rationale',
-      tokens: 100
+      llmKey: 'B',
+      llmRationaleA: 'AI generated rationale for option A',
+      llmRationaleB: 'AI generated rationale for option B',
+      llmRationaleC: 'AI generated rationale for option C',
+      llmRationaleD: 'AI generated rationale for option D',
+      llmGeneralRationale: 'General explanation from AI'
     })
   };
 });
