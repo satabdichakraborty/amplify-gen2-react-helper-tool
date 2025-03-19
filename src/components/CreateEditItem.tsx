@@ -15,10 +15,11 @@ import Toggle from "@cloudscape-design/components/toggle";
 import Select, { SelectProps } from "@cloudscape-design/components/select";
 import Checkbox from "@cloudscape-design/components/checkbox";
 import { client } from "../main";
-import { listItems, type Item } from '../graphql/operations';
+import { listItems, type Item, generateRationaleWithLLM, GeneratedRationale } from '../graphql/operations';
 import { EditableRationale } from './EditableRationale';
 import Modal from "@cloudscape-design/components/modal";
 import Box from "@cloudscape-design/components/box";
+import { LLMRationaleModal } from './LLMRationaleModal';
 
 // Style for the correct answer label
 const correctLabelStyle = (isCorrect: boolean) => ({
@@ -79,6 +80,12 @@ export function CreateEditItem() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
   const [showNavigationModal, setShowNavigationModal] = useState<boolean>(false);
   const [pendingNavigation, setPendingNavigation] = useState<'next' | 'previous' | null>(null);
+
+  // New state variables for LLM rationale
+  const [showLLMRationaleModal, setShowLLMRationaleModal] = useState<boolean>(false);
+  const [llmRationaleLoading, setLLMRationaleLoading] = useState<boolean>(false);
+  const [llmRationaleError, setLLMRationaleError] = useState<string | null>(null);
+  const [generatedRationale, setGeneratedRationale] = useState<GeneratedRationale | null>(null);
 
   // Track changes to form fields
   useEffect(() => {
@@ -381,7 +388,16 @@ export function CreateEditItem() {
             Topic: topic,
             Rationale: rationale,
             KnowledgeSkills: knowledgeSkills,
-            CreatedBy: createdBy || 'system'
+            CreatedBy: createdBy || 'system',
+            // Include LLM fields if available
+            LLMKey: generatedRationale?.llmKey || existingItem.data?.LLMKey || '',
+            LLMRationaleA: generatedRationale?.llmRationaleA || existingItem.data?.LLMRationaleA || '',
+            LLMRationaleB: generatedRationale?.llmRationaleB || existingItem.data?.LLMRationaleB || '',
+            LLMRationaleC: generatedRationale?.llmRationaleC || existingItem.data?.LLMRationaleC || '',
+            LLMRationaleD: generatedRationale?.llmRationaleD || existingItem.data?.LLMRationaleD || '',
+            LLMRationaleE: generatedRationale?.llmRationaleE || existingItem.data?.LLMRationaleE || '',
+            LLMRationaleF: generatedRationale?.llmRationaleF || existingItem.data?.LLMRationaleF || '',
+            LLMGeneralRationale: generatedRationale?.llmGeneralRationale || existingItem.data?.LLMGeneralRationale || '',
           };
           await client.models.Item.update(updatedItem);
           setSuccess('Item updated successfully!');
@@ -420,7 +436,16 @@ export function CreateEditItem() {
           Topic: topic,
           Rationale: rationale,
           KnowledgeSkills: knowledgeSkills,
-          CreatedBy: createdBy || 'system'
+          CreatedBy: createdBy || 'system',
+          // Include LLM fields if available
+          LLMKey: generatedRationale?.llmKey || '',
+          LLMRationaleA: generatedRationale?.llmRationaleA || '',
+          LLMRationaleB: generatedRationale?.llmRationaleB || '',
+          LLMRationaleC: generatedRationale?.llmRationaleC || '',
+          LLMRationaleD: generatedRationale?.llmRationaleD || '',
+          LLMRationaleE: generatedRationale?.llmRationaleE || '',
+          LLMRationaleF: generatedRationale?.llmRationaleF || '',
+          LLMGeneralRationale: generatedRationale?.llmGeneralRationale || '',
         };
         await client.models.Item.create(newItem);
         setSuccess('Item created successfully!');
@@ -448,8 +473,8 @@ export function CreateEditItem() {
       // Placeholder for Run Item Rules functionality
       alert('Run Item Rules functionality will be implemented later');
     } else if (action === 'generateRationale') {
-      // Placeholder for Generate Rationale functionality
-      alert('Generate Rationale functionality will be implemented later');
+      // Call the Generate Rationale functionality
+      handleGenerateRationale();
     } else if (action === 'validateItems') {
       // Placeholder for Validate Items functionality
       alert('Validate Items functionality will be implemented later');
@@ -457,6 +482,89 @@ export function CreateEditItem() {
     
     // Reset the selected action (visual feedback that the action was performed)
     setTimeout(() => setSelectedAction(null), 500);
+  };
+
+  // Function to handle Generate Rationale
+  const handleGenerateRationale = async () => {
+    try {
+      // Validate that we have enough data to generate a rationale
+      if (!question.trim()) {
+        setError('Question is required to generate a rationale');
+        return;
+      }
+      
+      if (!responseA.trim() || !responseB.trim() || !responseC.trim() || !responseD.trim()) {
+        setError('All four basic responses (A-D) are required to generate a rationale');
+        return;
+      }
+      
+      // Show the modal and set loading state
+      setLLMRationaleError(null);
+      setShowLLMRationaleModal(true);
+      setLLMRationaleLoading(true);
+      
+      // Create a request object with the current item data
+      const itemData: Partial<Item> = {
+        Question: question,
+        responseA,
+        responseB,
+        responseC,
+        responseD,
+        responseE,
+        responseF,
+        Type: isMultipleResponse ? 'Multiple Response' : 'Multiple Choice'
+      };
+      
+      // Call the Lambda function via the client
+      const result = await generateRationaleWithLLM(itemData);
+      
+      // Set the generated rationale in the state
+      setGeneratedRationale(result);
+    } catch (err) {
+      console.error('Error generating rationale:', err);
+      setLLMRationaleError(`Failed to generate rationale: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setLLMRationaleLoading(false);
+    }
+  };
+
+  // Function to handle accepting the AI-generated rationale
+  const handleAcceptRationale = (rationaleData: GeneratedRationale) => {
+    // Map the LLM rationale to our state
+    if (rationaleData.llmKey) {
+      setCorrectAnswers(rationaleData.llmKey.split(',').map(k => k.trim()));
+    }
+    
+    // Update the rationale fields
+    setRationaleA(prevRationale => 
+      rationaleData.llmRationaleA ? rationaleData.llmRationaleA : prevRationale);
+    setRationaleB(prevRationale => 
+      rationaleData.llmRationaleB ? rationaleData.llmRationaleB : prevRationale);
+    setRationaleC(prevRationale => 
+      rationaleData.llmRationaleC ? rationaleData.llmRationaleC : prevRationale);
+    setRationaleD(prevRationale => 
+      rationaleData.llmRationaleD ? rationaleData.llmRationaleD : prevRationale);
+    
+    if (rationaleData.llmRationaleE) {
+      setRationaleE(rationaleData.llmRationaleE);
+    }
+    
+    if (rationaleData.llmRationaleF) {
+      setRationaleF(rationaleData.llmRationaleF);
+    }
+    
+    if (rationaleData.llmGeneralRationale) {
+      setRationale(rationaleData.llmGeneralRationale);
+    }
+    
+    // Close the modal
+    setShowLLMRationaleModal(false);
+    
+    // Show success message
+    setSuccess('AI-generated rationale applied successfully');
+    
+    // Mark that we have unsaved changes
+    setHasUnsavedChanges(true);
   };
 
   // Update the handleAddResponse and handleRemoveResponse functions
@@ -882,6 +990,25 @@ export function CreateEditItem() {
       >
         <p>You have unsaved changes. What would you like to do?</p>
       </Modal>
+
+      {/* Add the LLM Rationale Modal */}
+      <LLMRationaleModal
+        visible={showLLMRationaleModal}
+        onDismiss={() => setShowLLMRationaleModal(false)}
+        onAccept={handleAcceptRationale}
+        loading={llmRationaleLoading}
+        error={llmRationaleError}
+        generatedRationale={generatedRationale}
+        question={question}
+        responses={[
+          { letter: 'A', text: responseA, rationale: rationaleA },
+          { letter: 'B', text: responseB, rationale: rationaleB },
+          { letter: 'C', text: responseC, rationale: rationaleC },
+          { letter: 'D', text: responseD, rationale: rationaleD },
+          ...(responseE ? [{ letter: 'E', text: responseE, rationale: rationaleE }] : []),
+          ...(responseF ? [{ letter: 'F', text: responseF, rationale: rationaleF }] : [])
+        ]}
+      />
     </>
   );
 } 

@@ -27,12 +27,33 @@ export type Item = {
   rationaleG?: string;
   responseH?: string;
   rationaleH?: string;
+  // New LLM-generated fields
+  LLMKey?: string;
+  LLMRationaleA?: string;
+  LLMRationaleB?: string;
+  LLMRationaleC?: string;
+  LLMRationaleD?: string;
+  LLMRationaleE?: string;
+  LLMRationaleF?: string;
+  LLMGeneralRationale?: string;
   Topic?: string;
   KnowledgeSkills?: string;
   Tags?: string;
   responsesJson?: string;
   createdAt?: string;
   updatedAt?: string;
+};
+
+// Type for Lambda response
+export type GeneratedRationale = {
+  llmKey: string;
+  llmRationaleA: string;
+  llmRationaleB: string;
+  llmRationaleC: string;
+  llmRationaleD: string;
+  llmRationaleE?: string;
+  llmRationaleF?: string;
+  llmGeneralRationale: string;
 };
 
 export async function listItems(): Promise<Item[]> {
@@ -129,6 +150,15 @@ export async function createItem(item: Partial<Item>): Promise<Item> {
       rationaleF: item.rationaleF || '',
       rationaleG: item.rationaleG || '',
       rationaleH: item.rationaleH || '',
+      // New LLM fields
+      LLMKey: item.LLMKey || '',
+      LLMRationaleA: item.LLMRationaleA || '',
+      LLMRationaleB: item.LLMRationaleB || '',
+      LLMRationaleC: item.LLMRationaleC || '',
+      LLMRationaleD: item.LLMRationaleD || '',
+      LLMRationaleE: item.LLMRationaleE || '',
+      LLMRationaleF: item.LLMRationaleF || '',
+      LLMGeneralRationale: item.LLMGeneralRationale || '',
       Tags: item.Tags || '',
       Rationale: item.Rationale || '',
       // Ensure Type and Status have values
@@ -229,5 +259,48 @@ export async function deleteItem(questionId: number, createdDate: string): Promi
   } catch (error) {
     console.error('Error deleting item:', error);
     throw error;
+  }
+}
+
+// New function to invoke the Lambda for generating rationales
+export async function generateRationaleWithLLM(item: Partial<Item>): Promise<GeneratedRationale> {
+  try {
+    console.log('Generating rationale for item:', item.QuestionId);
+    
+    // Build the request payload
+    const payload = {
+      question: item.Question,
+      responseA: item.responseA,
+      responseB: item.responseB,
+      responseC: item.responseC,
+      responseD: item.responseD,
+      responseE: item.responseE,
+      responseF: item.responseF,
+      type: item.Type
+    };
+    
+    // Call the Lambda function through REST API (temporarily mocked)
+    // In production, this would use the Amplify API client to call the Lambda
+    // const response = await client.functions.generateRationale(payload);
+    
+    // TEMPORARY MOCK IMPLEMENTATION FOR TESTING
+    // In a real implementation, this would call the actual Lambda
+    console.log('Simulating Lambda call with payload:', payload);
+    await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate network delay
+    
+    // Mock response for testing UI
+    const mockResponse = {
+      llmKey: 'C',
+      llmRationaleA: 'Option A is incorrect. While reconfiguring Amazon EFS for maximum I/O might improve performance, it would be expensive and wouldn\'t address the specific issue of video content delivery at scale.',
+      llmRationaleB: 'Option B is incorrect. Using instance store volumes would not only fail to solve the scaling issue but would actually reduce reliability since instance store volumes are ephemeral.',
+      llmRationaleC: 'Option C is correct. Using CloudFront as a CDN with S3 as the origin is the most cost-efficient and scalable solution for delivering static content like videos. This approach offloads traffic from the EC2 servers and leverages AWS\'s global edge network for better performance.',
+      llmRationaleD: 'Option D is incorrect. This appears to be an incomplete option in the question, but it seems to suggest another CloudFront configuration which is not the optimal solution.',
+      llmGeneralRationale: 'The most cost-efficient and scalable solution for delivering video content is to use Amazon CloudFront as a content delivery network (CDN) with an S3 bucket as the origin. This approach has several advantages:\n\n1. CloudFront caches content at edge locations around the world, reducing latency for users\n2. Traffic is offloaded from the EC2 servers, allowing them to focus on dynamic content\n3. S3 provides highly durable, scalable storage for the video files\n4. This combination is specifically designed for high-scale static content delivery\n5. The pay-as-you-go pricing model is cost-efficient for variable traffic patterns\n\nThis solution directly addresses both the performance issues and cost efficiency requirements mentioned in the question.'
+    };
+    
+    return mockResponse;
+  } catch (error) {
+    console.error('Error generating rationale:', error);
+    throw new Error(`Failed to generate rationale: ${error instanceof Error ? error.message : String(error)}`);
   }
 } 

@@ -27,6 +27,15 @@ const schema = a.schema({
       rationaleH: a.string(),             // Explanation for option H (Optional)
       Key: a.string(),                    // Correct answer (A, B, C, D, E, F, G, or H)
       Rationale: a.string(),              // General rationale for the question
+      // New LLM-generated fields
+      LLMKey: a.string(),                 // AI-predicted correct answer
+      LLMRationaleA: a.string(),          // AI-generated explanation for A
+      LLMRationaleB: a.string(),          // AI-generated explanation for B
+      LLMRationaleC: a.string(),          // AI-generated explanation for C
+      LLMRationaleD: a.string(),          // AI-generated explanation for D
+      LLMRationaleE: a.string(),          // AI-generated explanation for E (if present)
+      LLMRationaleF: a.string(),          // AI-generated explanation for F (if present)
+      LLMGeneralRationale: a.string(),    // AI-generated general explanation
       Topic: a.string(),                  // Topic category
       KnowledgeSkills: a.string(),        // Knowledge/skills tested
       Tags: a.string(),                   // Tags for searching/filtering
