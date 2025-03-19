@@ -101,11 +101,11 @@ describe('generateRationale Lambda', () => {
       body: expect.any(String)
     }));
     
-    // Get the most recent call arguments to InvokeModelCommand constructor
-    const mockCalls = bedrockModule.InvokeModelCommand['mock'].calls;
-    expect(mockCalls.length).toBeGreaterThan(0);
+    // Get the constructor arguments from the mocked function
+    const mockFn = bedrockModule.InvokeModelCommand as jest.Mock;
+    expect(mockFn.mock.calls.length).toBeGreaterThan(0);
     
-    const mostRecentCall = mockCalls[0][0];
+    const mostRecentCall = mockFn.mock.calls[0][0];
     const requestBody = JSON.parse(mostRecentCall.body);
     expect(requestBody.messages[0].role).toBe("user");
     expect(requestBody.messages[0].content).toBe(prompt);
