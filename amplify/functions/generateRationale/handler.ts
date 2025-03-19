@@ -2,7 +2,7 @@
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
 
 // Define types for the request and response
-type GenerateRationaleRequest = {
+export type GenerateRationaleRequest = {
   question: string;
   responseA: string;
   responseB: string;
@@ -13,7 +13,7 @@ type GenerateRationaleRequest = {
   type: 'Multiple Choice' | 'Multiple Response';
 };
 
-type GeneratedRationaleResponse = {
+export type GeneratedRationaleResponse = {
   llmKey: string;
   llmRationaleA: string;
   llmRationaleB: string;
@@ -160,8 +160,14 @@ export async function callBedrock(prompt: string): Promise<string> {
   }
 }
 
+// Type for the Lambda event
+export type LambdaEvent = {
+  arguments?: GenerateRationaleRequest;
+  body?: GenerateRationaleRequest;
+} & Record<string, any>;
+
 // Main handler function
-export async function handler(event: any) {
+export async function handler(event: LambdaEvent) {
   try {
     console.log('Received event:', JSON.stringify(event));
     

@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
-import { createPrompt, parseModelResponse, callBedrock, handler } from './handler';
+import { createPrompt, parseModelResponse, callBedrock, handler, type GeneratedRationaleResponse } from './handler';
 
 // Mock the AWS SDK with a properly formatted Claude 3.7 Sonnet response
 vi.mock('@aws-sdk/client-bedrock-runtime', () => {
@@ -129,6 +129,8 @@ describe('generateRationale Lambda', () => {
     
     expect(result.statusCode).toBe(200);
     expect(result.body).toBeDefined();
-    expect(result.body.llmKey).toBe("C");
+    // Type assertion to ensure TypeScript knows body has llmKey property
+    const body = result.body as GeneratedRationaleResponse;
+    expect(body.llmKey).toBe("C");
   });
 }); 

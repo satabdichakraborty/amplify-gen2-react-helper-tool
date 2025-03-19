@@ -1,26 +1,31 @@
 import { defineFunction } from '@aws-amplify/backend';
-import { PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
+// Define the Lambda function with configuration
 export const generateRationale = defineFunction({
   name: 'generateRationale',
   entry: './handler.ts',
   environment: {
     REGION: 'us-east-1', // Adjust region as needed for Bedrock availability
   },
-  permissions: [
-    // Add permissions for Bedrock APIs
+});
+
+// Add IAM permissions separately using CDK after function definition
+const lambdaFunction = generateRationale.node.defaultChild;
+if (lambdaFunction) {
+  lambdaFunction.addToRolePolicy(
     new PolicyStatement({
+      effect: Effect.ALLOW,
       actions: [
         'bedrock:InvokeModel',
         'bedrock:InvokeModelWithResponseStream'
       ],
       resources: [
-        // Resource ARN pattern for Claude 3.7 Sonnet
         'arn:aws:bedrock:*:*:model/anthropic.claude-3-7-sonnet-20240620-v1:0',
       ],
-    }),
-  ]
-});
+    })
+  );
+}
 
-// Add default export to ensure compatibility
+// Export for compatibility
 export default { generateRationale }; 
