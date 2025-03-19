@@ -20,24 +20,25 @@ interface ItemDetailsProps {
 export const ItemDetails: React.FC<ItemDetailsProps> = ({ item, visible, onDismiss }) => {
   if (!item) return null;
 
+  // Create base response fields for A-D (only include if they have content)
   const responseFields = [
     { label: 'A', response: item.responseA, rationale: item.rationaleA },
     { label: 'B', response: item.responseB, rationale: item.rationaleB },
     { label: 'C', response: item.responseC, rationale: item.rationaleC },
     { label: 'D', response: item.responseD, rationale: item.rationaleD }
-  ];
+  ].filter(field => field.response && field.response.trim() !== '');
 
-  // Optional responses
-  if (item.responseE) {
+  // Optional responses - only add if they have content
+  if (item.responseE && item.responseE.trim() !== '') {
     responseFields.push({ label: 'E', response: item.responseE, rationale: item.rationaleE || '' });
   }
-  if (item.responseF) {
+  if (item.responseF && item.responseF.trim() !== '') {
     responseFields.push({ label: 'F', response: item.responseF, rationale: item.rationaleF || '' });
   }
-  if (item.responseG) {
+  if (item.responseG && item.responseG.trim() !== '') {
     responseFields.push({ label: 'G', response: item.responseG, rationale: item.rationaleG || '' });
   }
-  if (item.responseH) {
+  if (item.responseH && item.responseH.trim() !== '') {
     responseFields.push({ label: 'H', response: item.responseH, rationale: item.rationaleH || '' });
   }
 
@@ -89,26 +90,24 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({ item, visible, onDismi
         <Container header={<Header variant="h3">Responses</Header>}>
           <SpaceBetween size="l">
             {responseFields.map((field) => (
-              field.response ? (
-                <div key={field.label}>
-                  <Box variant="awsui-key-label">
-                    Response {field.label} 
-                    {correctResponses.includes(field.label) && (
-                      <span style={{ marginLeft: '8px', color: '#0073bb', fontWeight: 'bold' }}>
-                        (Correct)
-                      </span>
-                    )}
-                  </Box>
-                  <div>{field.response}</div>
-                  
-                  {field.rationale && (
-                    <div style={{ marginTop: '8px' }}>
-                      <Box variant="awsui-key-label">Rationale {field.label}</Box>
-                      <RationaleDisplay text={field.rationale} maxHeight="200px" />
-                    </div>
+              <div key={field.label}>
+                <Box variant="awsui-key-label">
+                  Response {field.label} 
+                  {correctResponses.includes(field.label) && (
+                    <span style={{ marginLeft: '8px', color: '#0073bb', fontWeight: 'bold' }}>
+                      (Correct)
+                    </span>
                   )}
-                </div>
-              ) : null
+                </Box>
+                <div>{field.response}</div>
+                
+                {field.rationale && (
+                  <div style={{ marginTop: '8px' }}>
+                    <Box variant="awsui-key-label">Rationale {field.label}</Box>
+                    <RationaleDisplay text={field.rationale} maxHeight="200px" />
+                  </div>
+                )}
+              </div>
             ))}
           </SpaceBetween>
         </Container>

@@ -1001,12 +1001,12 @@ export function CreateEditItem() {
         generatedRationale={generatedRationale}
         question={question}
         responses={[
-          { letter: 'A', text: responseA, rationale: rationaleA },
-          { letter: 'B', text: responseB, rationale: rationaleB },
-          { letter: 'C', text: responseC, rationale: rationaleC },
-          { letter: 'D', text: responseD, rationale: rationaleD },
-          ...(responseE ? [{ letter: 'E', text: responseE, rationale: rationaleE }] : []),
-          ...(responseF ? [{ letter: 'F', text: responseF, rationale: rationaleF }] : [])
+          ...(responseA && responseA.trim() !== '' ? [{ letter: 'A', text: responseA, rationale: rationaleA }] : []),
+          ...(responseB && responseB.trim() !== '' ? [{ letter: 'B', text: responseB, rationale: rationaleB }] : []),
+          ...(responseC && responseC.trim() !== '' ? [{ letter: 'C', text: responseC, rationale: rationaleC }] : []),
+          ...(responseD && responseD.trim() !== '' ? [{ letter: 'D', text: responseD, rationale: rationaleD }] : []),
+          ...(responseE && responseE.trim() !== '' ? [{ letter: 'E', text: responseE, rationale: rationaleE }] : []),
+          ...(responseF && responseF.trim() !== '' ? [{ letter: 'F', text: responseF, rationale: rationaleF }] : [])
         ]}
       />
     </>

@@ -51,7 +51,7 @@ export const LLMRationaleModal: React.FC<LLMRationaleModalProps> = ({
   };
 
   // Filter out responses with empty text
-  const filteredResponses = responses.filter(response => response.text.trim() !== '');
+  const filteredResponses = responses.filter(response => response.text && response.text.trim() !== '');
 
   return (
     <Modal
