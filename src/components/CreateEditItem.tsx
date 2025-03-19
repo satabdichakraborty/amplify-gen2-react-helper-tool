@@ -15,8 +15,10 @@ import Toggle from "@cloudscape-design/components/toggle";
 import Select, { SelectProps } from "@cloudscape-design/components/select";
 import Checkbox from "@cloudscape-design/components/checkbox";
 import { client } from "../main";
-import { listItems } from '../graphql/operations';
+import { listItems, type Item } from '../graphql/operations';
 import { EditableRationale } from './EditableRationale';
+import Modal from "@cloudscape-design/components/modal";
+import Box from "@cloudscape-design/components/box";
 
 // Style for the correct answer label
 const correctLabelStyle = (isCorrect: boolean) => ({
@@ -63,11 +65,39 @@ export function CreateEditItem() {
   const [status, setStatus] = useState<string>('Draft');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [isEditing] = useState<boolean>(!!id);
+  const [success, setSuccess] = useState<string | null>(null);
   const [selectedAction, setSelectedAction] = useState<SelectProps.Option | null>(null);
   const [isMultipleResponse, setIsMultipleResponse] = useState<boolean>(false);
   // Track how many response options to display based on data in database
   const [numResponsesToShow, setNumResponsesToShow] = useState<number>(4);
+
+  // New state variables for navigation
+  const [allItems, setAllItems] = useState<Item[]>([]);
+  const [currentItemIndex, setCurrentItemIndex] = useState<number>(-1);
+  const [isFirstItem, setIsFirstItem] = useState<boolean>(false);
+  const [isLastItem, setIsLastItem] = useState<boolean>(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
+  const [showNavigationModal, setShowNavigationModal] = useState<boolean>(false);
+  const [pendingNavigation, setPendingNavigation] = useState<'next' | 'previous' | null>(null);
+
+  // Track changes to form fields
+  useEffect(() => {
+    // Only track changes after initial loading
+    if (!loading && id) {
+      setHasUnsavedChanges(true);
+    }
+  }, [
+    question, responseA, responseB, responseC, responseD,
+    responseE, responseF, responseG, responseH,
+    rationaleA, rationaleB, rationaleC, rationaleD,
+    rationaleE, rationaleF, rationaleG, rationaleH,
+    rationale, topic, knowledgeSkills, status, correctAnswers
+  ]);
+
+  // Reset unsaved changes on successful save
+  const resetUnsavedChanges = () => {
+    setHasUnsavedChanges(false);
+  };
 
   // Parse Key field into array of correct answers
   const parseKeyField = (key: string): string[] => {
@@ -85,34 +115,43 @@ export function CreateEditItem() {
 
   useEffect(() => {
     async function fetchItem() {
-      if (id) {
-        console.log('Fetching item with ID:', id);
-        try {
-          setLoading(true);
-          
-          // First, query the items list to find the correct item and its createdDate
-          const items = await listItems();
-          console.log('Items list response:', items);
-          
-          if (!Array.isArray(items) || items.length === 0) {
-            console.error('No items found in the database or invalid response');
-            setError('Failed to load items list');
-            setLoading(false);
-            return;
-          }
-          
+      try {
+        setLoading(true);
+        
+        // Fetch all items for navigation
+        const items = await listItems();
+        
+        if (!Array.isArray(items) || items.length === 0) {
+          console.error('No items found in the database or invalid response');
+          setError('Failed to load items list');
+          setLoading(false);
+          return;
+        }
+        
+        // Sort items by QuestionId for consistent navigation
+        const sortedItems = [...items].sort((a, b) => a.QuestionId - b.QuestionId);
+        setAllItems(sortedItems);
+        
+        if (id) {
           // Find the item with matching ID
-          const targetItem = items.find(item => 
+          const targetIndex = sortedItems.findIndex(item => 
             item.QuestionId === parseInt(id, 10)
           );
           
-          if (!targetItem) {
+          if (targetIndex === -1) {
             console.error('Item with ID', id, 'not found in the database');
             setError(`Item with ID ${id} not found`);
             setLoading(false);
             return;
           }
           
+          setCurrentItemIndex(targetIndex);
+          
+          // Set first/last item flags
+          setIsFirstItem(targetIndex === 0);
+          setIsLastItem(targetIndex === sortedItems.length - 1);
+          
+          const targetItem = sortedItems[targetIndex];
           console.log('Found matching item:', targetItem);
           
           // Now get the full item details using the correct ID and createdDate
@@ -193,12 +232,12 @@ export function CreateEditItem() {
             console.error('No data found in the item response');
             setError('Failed to load item data: Item not found');
           }
-        } catch (err) {
-          console.error('Error fetching item:', err);
-          setError('Failed to load item data');
-        } finally {
-          setLoading(false);
         }
+      } catch (err) {
+        console.error('Error fetching item:', err);
+        setError('Failed to load item data');
+      } finally {
+        setLoading(false);
       }
     }
 
@@ -294,69 +333,95 @@ export function CreateEditItem() {
     }
   };
 
-  const handleSave = async () => {
-    if (!validateForm()) {
-      return;
-    }
-
-    console.log('Saving item with correct answers:', correctAnswers);
-    
+  const handleSave = async (e: any) => {
+    e.preventDefault();
     try {
-      setLoading(true);
-      
-      // Prepare the item data for save
-      const formattedKey = correctAnswers.sort().join(',');
-      
-      // Create the item object without any additional processing of rationale fields
-      // This ensures special characters are preserved as-is
-      const itemData = {
-        QuestionId: questionId,
-        CreatedDate: createdDate,
-        CreatedBy: createdBy || 'System',
-        Topic: topic || '',
-        KnowledgeSkills: knowledgeSkills || '',
-        Question: question,
-        responseA,
-        responseB,
-        responseC,
-        responseD,
-        responseE: isMultipleResponse ? responseE : '',
-        responseF: isMultipleResponse ? responseF : '',
-        responseG: numResponsesToShow >= 7 ? responseG : '',
-        responseH: numResponsesToShow >= 8 ? responseH : '',
-        rationaleA,
-        rationaleB,
-        rationaleC,
-        rationaleD,
-        rationaleE: isMultipleResponse ? rationaleE : '',
-        rationaleF: isMultipleResponse ? rationaleF : '',
-        rationaleG: numResponsesToShow >= 7 ? rationaleG : '',
-        rationaleH: numResponsesToShow >= 8 ? rationaleH : '',
-        Key: formattedKey,
-        Rationale: rationale,
-        Type: isMultipleResponse ? 'Multiple Response' : 'Multiple Choice',
-        Status: status
-      };
-      
-      console.log('Saving item data:', itemData);
-      
-      if (isEditing) {
-        // Update existing item
-        await client.models.Item.update(itemData);
-        console.log('Item updated successfully');
-      } else {
-        // Create a new item
-        await client.models.Item.create(itemData);
-        console.log('Item created successfully');
+      if (!validateForm()) {
+        console.log('Form validation failed');
+        return;
       }
-      
-      // Navigate back to the items list
-      navigate('/');
+
+      if (id) {
+        // Update existing item
+        const existingItem = await client.models.Item.get({ 
+          QuestionId: parseInt(id, 10),
+          CreatedDate: createdDate
+        });
+        if (existingItem) {
+          const updatedItem = {
+            QuestionId: parseInt(id, 10),
+            CreatedDate: createdDate,
+            Question: question,
+            Type: isMultipleResponse ? 'Multiple Response' : 'Multiple Choice',
+            Status: status,
+            Key: correctAnswers.join(''),
+            responseA: responseA,
+            responseB: responseB,
+            responseC: responseC,
+            responseD: responseD,
+            responseE: responseE,
+            responseF: responseF,
+            responseG: responseG,
+            responseH: responseH,
+            rationaleA: rationaleA,
+            rationaleB: rationaleB,
+            rationaleC: rationaleC,
+            rationaleD: rationaleD,
+            rationaleE: rationaleE,
+            rationaleF: rationaleF,
+            rationaleG: rationaleG,
+            rationaleH: rationaleH,
+            Topic: topic,
+            Rationale: rationale,
+            KnowledgeSkills: knowledgeSkills,
+            CreatedBy: createdBy || 'system'
+          };
+          await client.models.Item.update(updatedItem);
+          setSuccess('Item updated successfully!');
+          resetUnsavedChanges();
+          
+          // Execute pending navigation if there was one
+          if (pendingNavigation) {
+            executeNavigation();
+          }
+        }
+      } else {
+        // Create new item
+        const newItem = {
+          QuestionId: questionId,
+          CreatedDate: createdDate,
+          Question: question,
+          Type: isMultipleResponse ? 'Multiple Response' : 'Multiple Choice',
+          Status: status,
+          Key: correctAnswers.join(''),
+          responseA: responseA,
+          responseB: responseB,
+          responseC: responseC,
+          responseD: responseD,
+          responseE: responseE,
+          responseF: responseF,
+          responseG: responseG,
+          responseH: responseH,
+          rationaleA: rationaleA,
+          rationaleB: rationaleB,
+          rationaleC: rationaleC,
+          rationaleD: rationaleD,
+          rationaleE: rationaleE,
+          rationaleF: rationaleF,
+          rationaleG: rationaleG,
+          rationaleH: rationaleH,
+          Topic: topic,
+          Rationale: rationale,
+          KnowledgeSkills: knowledgeSkills,
+          CreatedBy: createdBy || 'system'
+        };
+        await client.models.Item.create(newItem);
+        setSuccess('Item created successfully!');
+        resetUnsavedChanges();
+      }
     } catch (err) {
       console.error('Error saving item:', err);
-      setError('Failed to save item');
-    } finally {
-      setLoading(false);
+      setError(`Failed to save item: ${err instanceof Error ? err.message : String(err)}`);
     }
   };
 
@@ -483,210 +548,330 @@ export function CreateEditItem() {
     );
   };
 
+  // Add navigation functions
+  const navigateToPreviousItem = () => {
+    if (currentItemIndex > 0) {
+      if (hasUnsavedChanges) {
+        setPendingNavigation('previous');
+        setShowNavigationModal(true);
+      } else {
+        executeNavigation('previous');
+      }
+    }
+  };
+
+  const navigateToNextItem = () => {
+    if (currentItemIndex < allItems.length - 1) {
+      if (hasUnsavedChanges) {
+        setPendingNavigation('next');
+        setShowNavigationModal(true);
+      } else {
+        executeNavigation('next');
+      }
+    }
+  };
+
+  const executeNavigation = (direction?: 'next' | 'previous') => {
+    // Use the provided direction or fall back to pendingNavigation state
+    const navigationDirection = direction || pendingNavigation;
+    
+    if (navigationDirection === 'previous' && currentItemIndex > 0) {
+      const prevItem = allItems[currentItemIndex - 1];
+      navigate(`/items/${prevItem.QuestionId}/edit`);
+    } else if (navigationDirection === 'next' && currentItemIndex < allItems.length - 1) {
+      const nextItem = allItems[currentItemIndex + 1];
+      navigate(`/items/${nextItem.QuestionId}/edit`);
+    }
+    setShowNavigationModal(false);
+    setPendingNavigation(null);
+  };
+
+  const handleNavigationConfirm = async () => {
+    try {
+      // Create a synthetic event to pass to handleSave
+      const syntheticEvent = { preventDefault: () => {} };
+      
+      // Save current changes
+      await handleSave(syntheticEvent);
+      
+      // Then navigate if save was successful
+      if (pendingNavigation) {
+        executeNavigation();
+      }
+    } catch (err) {
+      console.error('Error saving before navigation:', err);
+      setError('Failed to save changes before navigation');
+      setShowNavigationModal(false);
+    }
+  };
+
+  const handleNavigationCancel = () => {
+    setShowNavigationModal(false);
+    setPendingNavigation(null);
+  };
+
+  const handleNavigationDiscard = () => {
+    if (pendingNavigation) {
+      executeNavigation(pendingNavigation);
+    }
+  };
+
   return (
-    <AppLayout
-      content={
-        <SpaceBetween size="l">
-          <Container>
-            <SpaceBetween size="l">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Header
-                  variant="h1"
+    <>
+      <AppLayout
+        content={
+          <SpaceBetween size="l">
+            <Container>
+              <SpaceBetween size="l">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Header
+                    variant="h1"
+                  >
+                    {id ? 'Edit Item' : 'Create New Item'}
+                  </Header>
+                  <div style={{ width: '250px' }}>
+                    <Select
+                      selectedOption={selectedAction}
+                      onChange={handleActionChange}
+                      options={actionOptions}
+                      placeholder="Select an action"
+                    />
+                  </div>
+                </div>
+                
+                {error && (
+                  <div role="alert">
+                    <Alert type="error" header="Error">
+                      {error}
+                    </Alert>
+                  </div>
+                )}
+                {success && (
+                  <div role="alert">
+                    <Alert type="success" header="Success">
+                      {success}
+                    </Alert>
+                  </div>
+                )}
+
+                <Form
+                  actions={
+                    <SpaceBetween direction="horizontal" size="xs">
+                      <Button onClick={() => navigate('/')} disabled={loading}>
+                        Cancel
+                      </Button>
+                      <Button 
+                        variant="primary" 
+                        onClick={handleSave}
+                        loading={loading}
+                      >
+                        {id ? 'Save changes' : 'Create item'}
+                      </Button>
+                    </SpaceBetween>
+                  }
                 >
-                  {id ? 'Edit Item' : 'Create New Item'}
-                </Header>
-                <div style={{ width: '250px' }}>
-                  <Select
-                    selectedOption={selectedAction}
-                    onChange={handleActionChange}
-                    options={actionOptions}
-                    placeholder="Select an action"
-                  />
-                </div>
-              </div>
-              
-              {error && (
-                <div role="alert">
-                  <Alert type="error" header="Error">
-                    {error}
-                  </Alert>
-                </div>
-              )}
+                  <SpaceBetween size="l">
+                    {/* Basic Information Section */}
+                    <Container>
+                      <div>
+                        <SpaceBetween size="l">
+                          <Header variant="h2">Basic Information</Header>
+                          
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+                            <div>
+                              <FormField
+                                label="Question ID"
+                              >
+                                <Input
+                                  value={questionId.toString()}
+                                  disabled
+                                />
+                              </FormField>
+                            </div>
+                            <div>
+                              <FormField
+                                label="Created By"
+                              >
+                                <Input
+                                  value={createdBy}
+                                  disabled
+                                />
+                              </FormField>
+                            </div>
+                            <div>
+                              <FormField
+                                label="Created Date"
+                              >
+                                <Input
+                                  value={createdDate}
+                                  disabled
+                                />
+                              </FormField>
+                            </div>
+                            <div>
+                              <FormField
+                                label="Topic"
+                              >
+                                <Input
+                                  value={topic}
+                                  disabled
+                                />
+                              </FormField>
+                            </div>
+                            <div>
+                              <FormField
+                                label="Knowledge/Skills"
+                              >
+                                <Input
+                                  value={knowledgeSkills}
+                                  disabled
+                                />
+                              </FormField>
+                            </div>
+                          </div>
 
-              <Form
-                actions={
-                  <SpaceBetween direction="horizontal" size="xs">
-                    <Button onClick={() => navigate('/')} disabled={loading}>
-                      Cancel
-                    </Button>
-                    <Button 
-                      variant="primary" 
-                      onClick={handleSave}
-                      loading={loading}
-                    >
-                      {id ? 'Save changes' : 'Create item'}
-                    </Button>
+                          <FormField
+                            label="Question"
+                            errorText={error}
+                            stretch
+                          >
+                            <div>
+                              <TextArea
+                                value={question}
+                                onChange={({ detail }) => setQuestion(detail.value)}
+                                rows={3}
+                              />
+                            </div>
+                          </FormField>
+                        </SpaceBetween>
+                      </div>
+                    </Container>
+
+                    {/* Responses Section */}
+                    <Container>
+                      <div>
+                        <SpaceBetween size="l">
+                          <Header variant="h2">Responses</Header>
+                          
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ fontWeight: 'bold' }}>Response Type</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span>Multiple Choice</span>
+                              <Toggle
+                                checked={isMultipleResponse}
+                                onChange={({ detail }) => {
+                                  setIsMultipleResponse(detail.checked);
+                                }}
+                              />
+                              <span>Multiple Response</span>
+                            </div>
+                          </div>
+                          
+                          {/* Always render responses A through D */}
+                          {renderResponseSection('A', responseA, rationaleA, 0)}
+                          {renderResponseSection('B', responseB, rationaleB, 1)}
+                          {renderResponseSection('C', responseC, rationaleC, 2)}
+                          {renderResponseSection('D', responseD, rationaleD, 3)}
+                          
+                          {/* Conditional responses E-H based on numResponsesToShow */}
+                          {numResponsesToShow >= 5 && renderResponseSection('E', responseE, rationaleE, 4)}
+                          {numResponsesToShow >= 6 && renderResponseSection('F', responseF, rationaleF, 5)}
+                          {numResponsesToShow >= 7 && renderResponseSection('G', responseG, rationaleG, 6)}
+                          {numResponsesToShow >= 8 && renderResponseSection('H', responseH, rationaleH, 7)}
+                          
+                          {/* Add/Remove response controls for Multiple Response */}
+                          {isMultipleResponse && (
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                              {numResponsesToShow > 6 && (
+                                <Button onClick={handleRemoveResponse}>
+                                  Remove Response
+                                </Button>
+                              )}
+                              {numResponsesToShow < 8 && (
+                                <Button onClick={handleAddResponse}>
+                                  Add Response
+                                </Button>
+                              )}
+                            </div>
+                          )}
+                        </SpaceBetween>
+                      </div>
+                    </Container>
+
+                    {/* General Rationale Section */}
+                    <Container>
+                      <div>
+                        <SpaceBetween size="l">
+                          <Header variant="h2">General Rationale</Header>
+                          
+                          <EditableRationale
+                            value={rationale}
+                            onChange={setRationale}
+                          />
+                        </SpaceBetween>
+                      </div>
+                    </Container>
+
+                    {/* Navigation Buttons - Only show for edit mode */}
+                    {id && (
+                      <Container>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
+                          <Button 
+                            onClick={navigateToPreviousItem} 
+                            disabled={isFirstItem || loading}
+                            iconName="angle-left"
+                          >
+                            Previous
+                          </Button>
+                          
+                          <Button 
+                            onClick={navigateToNextItem} 
+                            disabled={isLastItem || loading}
+                            iconName="angle-right"
+                            iconAlign="right"
+                          >
+                            Next
+                          </Button>
+                        </div>
+                      </Container>
+                    )}
                   </SpaceBetween>
-                }
-              >
-                <SpaceBetween size="l">
-                  {/* Basic Information Section */}
-                  <Container>
-                    <div>
-                      <SpaceBetween size="l">
-                        <Header variant="h2">Basic Information</Header>
-                        
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-                          <div>
-                            <FormField
-                              label="Question ID"
-                            >
-                              <Input
-                                value={questionId.toString()}
-                                disabled
-                              />
-                            </FormField>
-                          </div>
-                          <div>
-                            <FormField
-                              label="Created By"
-                            >
-                              <Input
-                                value={createdBy}
-                                disabled
-                              />
-                            </FormField>
-                          </div>
-                          <div>
-                            <FormField
-                              label="Created Date"
-                            >
-                              <Input
-                                value={createdDate}
-                                disabled
-                              />
-                            </FormField>
-                          </div>
-                          <div>
-                            <FormField
-                              label="Topic"
-                            >
-                              <Input
-                                value={topic}
-                                disabled
-                              />
-                            </FormField>
-                          </div>
-                          <div>
-                            <FormField
-                              label="Knowledge/Skills"
-                            >
-                              <Input
-                                value={knowledgeSkills}
-                                disabled
-                              />
-                            </FormField>
-                          </div>
-                        </div>
-
-                        <FormField
-                          label="Question"
-                          errorText={error}
-                          stretch
-                        >
-                          <div>
-                            <TextArea
-                              value={question}
-                              onChange={({ detail }) => setQuestion(detail.value)}
-                              rows={3}
-                            />
-                          </div>
-                        </FormField>
-                      </SpaceBetween>
-                    </div>
-                  </Container>
-
-                  {/* Responses Section */}
-                  <Container>
-                    <div>
-                      <SpaceBetween size="l">
-                        <Header variant="h2">Responses</Header>
-                        
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ fontWeight: 'bold' }}>Response Type</div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span>Multiple Choice</span>
-                            <Toggle
-                              checked={isMultipleResponse}
-                              onChange={({ detail }) => {
-                                setIsMultipleResponse(detail.checked);
-                              }}
-                            />
-                            <span>Multiple Response</span>
-                          </div>
-                        </div>
-                        
-                        {/* Always render responses A through D */}
-                        {renderResponseSection('A', responseA, rationaleA, 0)}
-                        {renderResponseSection('B', responseB, rationaleB, 1)}
-                        {renderResponseSection('C', responseC, rationaleC, 2)}
-                        {renderResponseSection('D', responseD, rationaleD, 3)}
-                        
-                        {/* Conditional responses E-H based on numResponsesToShow */}
-                        {numResponsesToShow >= 5 && renderResponseSection('E', responseE, rationaleE, 4)}
-                        {numResponsesToShow >= 6 && renderResponseSection('F', responseF, rationaleF, 5)}
-                        {numResponsesToShow >= 7 && renderResponseSection('G', responseG, rationaleG, 6)}
-                        {numResponsesToShow >= 8 && renderResponseSection('H', responseH, rationaleH, 7)}
-                        
-                        {/* Add/Remove response controls for Multiple Response */}
-                        {isMultipleResponse && (
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                            {numResponsesToShow > 6 && (
-                              <Button onClick={handleRemoveResponse}>
-                                Remove Response
-                              </Button>
-                            )}
-                            {numResponsesToShow < 8 && (
-                              <Button onClick={handleAddResponse}>
-                                Add Response
-                              </Button>
-                            )}
-                          </div>
-                        )}
-                      </SpaceBetween>
-                    </div>
-                  </Container>
-
-                  {/* General Rationale Section */}
-                  <Container>
-                    <div>
-                      <SpaceBetween size="l">
-                        <Header variant="h2">General Rationale</Header>
-                        
-                        <EditableRationale
-                          value={rationale}
-                          onChange={setRationale}
-                        />
-                      </SpaceBetween>
-                    </div>
-                  </Container>
-                </SpaceBetween>
-              </Form>
+                </Form>
+              </SpaceBetween>
+            </Container>
+          </SpaceBetween>
+        }
+        breadcrumbs={
+          <BreadcrumbGroup
+            items={[
+              { text: 'Home', href: '/' },
+              { text: id ? 'Edit Item' : 'Create Item', href: '#' }
+            ]}
+            ariaLabel="Breadcrumbs"
+          />
+        }
+        navigationHide
+        toolsHide
+      />
+      
+      {/* Navigation Confirmation Modal moved outside AppLayout */}
+      <Modal
+        visible={showNavigationModal}
+        onDismiss={handleNavigationCancel}
+        header="Unsaved Changes"
+        footer={
+          <Box float="right">
+            <SpaceBetween direction="horizontal" size="xs">
+              <Button variant="link" onClick={handleNavigationCancel}>Cancel</Button>
+              <Button variant="normal" onClick={handleNavigationDiscard}>Discard Changes</Button>
+              <Button variant="primary" onClick={handleNavigationConfirm}>Save & Continue</Button>
             </SpaceBetween>
-          </Container>
-        </SpaceBetween>
-      }
-      breadcrumbs={
-        <BreadcrumbGroup
-          items={[
-            { text: 'Home', href: '/' },
-            { text: id ? 'Edit Item' : 'Create Item', href: '#' }
-          ]}
-          ariaLabel="Breadcrumbs"
-        />
-      }
-      navigationHide
-      toolsHide
-    />
+          </Box>
+        }
+        size="small"
+      >
+        <p>You have unsaved changes. What would you like to do?</p>
+      </Modal>
+    </>
   );
 } 
