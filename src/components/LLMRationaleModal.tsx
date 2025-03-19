@@ -50,6 +50,9 @@ export const LLMRationaleModal: React.FC<LLMRationaleModalProps> = ({
     }
   };
 
+  // Filter out responses with empty text
+  const filteredResponses = responses.filter(response => response.text.trim() !== '');
+
   return (
     <Modal
       visible={visible}
@@ -112,7 +115,7 @@ export const LLMRationaleModal: React.FC<LLMRationaleModalProps> = ({
             <Container>
               <Header variant="h3">Response Analysis</Header>
               <SpaceBetween size="l">
-                {responses.map(response => (
+                {filteredResponses.map(response => (
                   <ExpandableSection 
                     key={response.letter}
                     headerText={`Option ${response.letter}: ${response.text.substring(0, 60)}${response.text.length > 60 ? '...' : ''}`}
