@@ -1,5 +1,6 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { createPrompt, parseModelResponse, callBedrock, handler, type GeneratedRationaleResponse, type LambdaEvent } from './handler';
+import type { MockedFunction } from 'vitest';
 
 // Mock the AWS SDK with a properly formatted Claude 3.7 Sonnet response
 vi.mock('@aws-sdk/client-bedrock-runtime', async () => {
@@ -101,11 +102,13 @@ describe('generateRationale Lambda', () => {
       body: expect.any(String)
     }));
     
-    // Get the constructor arguments from the mocked function
-    const mockFn = bedrockModule.InvokeModelCommand as jest.Mock;
-    expect(mockFn.mock.calls.length).toBeGreaterThan(0);
+    // Get mock calls in a more type-safe way
+    // Convert the command to any type first to avoid TypeScript errors
+    const commandAny = bedrockModule.InvokeModelCommand as any;
+    expect(commandAny.mock).toBeDefined();
+    expect(commandAny.mock.calls.length).toBeGreaterThan(0);
     
-    const mostRecentCall = mockFn.mock.calls[0][0];
+    const mostRecentCall = commandAny.mock.calls[0][0];
     const requestBody = JSON.parse(mostRecentCall.body);
     expect(requestBody.messages[0].role).toBe("user");
     expect(requestBody.messages[0].content).toBe(prompt);

@@ -1,5 +1,4 @@
 import { defineFunction } from '@aws-amplify/backend';
-import type { FunctionResources } from '@aws-amplify/backend-functions';
 import { PolicyStatement, Effect } from 'aws-cdk-lib/aws-iam';
 
 // Define the Lambda function with configuration
