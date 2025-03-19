@@ -594,8 +594,8 @@ export function CreateEditItem() {
     rationaleValue: string, 
     index: number
   ) => {
-    // For optional responses (E, F), don't render if empty
-    if (index >= 4 && !responseValue.trim()) {
+    // Don't render if response is empty (for all responses)
+    if (!responseValue || responseValue.trim() === '') {
       return null;
     }
     
