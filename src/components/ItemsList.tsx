@@ -13,7 +13,8 @@ import {
   Modal,
   Toggle,
   Pagination,
-  CollectionPreferences
+  CollectionPreferences,
+  Checkbox
 } from '@cloudscape-design/components';
 import { applyMode, Mode } from "@cloudscape-design/global-styles";
 import { listItems, deleteItem, type Item } from '../graphql/operations';
@@ -29,6 +30,7 @@ interface ItemsListProps {
 
 // Define available columns for table display
 const AVAILABLE_COLUMNS = {
+  selection: { id: "selection", label: "Selection" },
   id: { id: "id", label: "ID" },
   question: { id: "question", label: "Question" },
   type: { id: "type", label: "Type" },
@@ -42,7 +44,7 @@ const AVAILABLE_COLUMNS = {
 };
 
 // Default visible columns
-const DEFAULT_VISIBLE_COLUMNS = ['id', 'question', 'type', 'status', 'createdDate', 'actions'];
+const DEFAULT_VISIBLE_COLUMNS = ['selection', 'id', 'question', 'type', 'status', 'createdDate', 'actions'];
 
 // Default preference settings
 const DEFAULT_PREFERENCES = {
@@ -61,6 +63,9 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
   const [wrapQuestions, setWrapQuestions] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [detailsModalVisible, setDetailsModalVisible] = useState<boolean>(false);
+  // States for bulk delete
+  const [selectedItems, setSelectedItems] = useState<Item[]>([]);
+  const [bulkDeleteModalVisible, setBulkDeleteModalVisible] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -104,6 +109,8 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
       
       setItems(data);
       setCurrentPage(1); // Reset to first page when new data is loaded
+      // Clear selected items when reloading
+      setSelectedItems([]);
     } catch (err) {
       console.error('Error loading items:', err);
       
@@ -143,6 +150,79 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
       setLoading(false);
     }
   }
+
+  // Function to handle bulk delete
+  async function handleBulkDelete() {
+    try {
+      setLoading(true);
+      // Delete each selected item sequentially 
+      for (const item of selectedItems) {
+        await deleteItem(item.QuestionId, item.CreatedDate);
+      }
+      await loadItems(); // Reload the list after all deletions
+      setBulkDeleteModalVisible(false);
+      setSelectedItems([]);
+    } catch (err) {
+      console.error('Error performing bulk delete:', err);
+      setError({
+        message: 'Error deleting items',
+        details: err instanceof Error ? err.message : String(err)
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Toggle single item selection
+  const toggleItemSelection = (item: Item) => {
+    setSelectedItems(prevSelectedItems => {
+      const isSelected = prevSelectedItems.some(
+        selected => selected.QuestionId === item.QuestionId && selected.CreatedDate === item.CreatedDate
+      );
+      
+      if (isSelected) {
+        return prevSelectedItems.filter(
+          selected => !(selected.QuestionId === item.QuestionId && selected.CreatedDate === item.CreatedDate)
+        );
+      } else {
+        return [...prevSelectedItems, item];
+      }
+    });
+  };
+
+  // Check if an item is selected
+  const isItemSelected = (item: Item): boolean => {
+    return selectedItems.some(
+      selected => selected.QuestionId === item.QuestionId && selected.CreatedDate === item.CreatedDate
+    );
+  };
+
+  // Toggle all items on current page
+  const toggleAllItems = (checked: boolean) => {
+    if (checked) {
+      // Add all items from current page that aren't already selected
+      const newSelectedItems = [...selectedItems];
+      paginatedItems.forEach(item => {
+        if (!isItemSelected(item)) {
+          newSelectedItems.push(item);
+        }
+      });
+      setSelectedItems(newSelectedItems);
+    } else {
+      // Remove all items from current page
+      const itemsToKeep = selectedItems.filter(selectedItem => 
+        !paginatedItems.some(
+          pageItem => pageItem.QuestionId === selectedItem.QuestionId && pageItem.CreatedDate === selectedItem.CreatedDate
+        )
+      );
+      setSelectedItems(itemsToKeep);
+    }
+  };
+
+  // Check if all items on current page are selected
+  const areAllItemsSelected = (): boolean => {
+    return paginatedItems.length > 0 && paginatedItems.every(item => isItemSelected(item));
+  };
 
   useEffect(() => {
     loadItems();
@@ -211,6 +291,23 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
   };
 
   const COLUMN_DEFINITIONS: ColumnDefinition[] = [
+    {
+      id: 'selection',
+      header: (
+        <Checkbox
+          checked={areAllItemsSelected()}
+          onChange={({ detail }) => toggleAllItems(detail.checked)}
+          ariaLabel="Select all items"
+        />
+      ),
+      cell: (item: Item) => (
+        <Checkbox
+          checked={isItemSelected(item)}
+          onChange={() => toggleItemSelection(item)}
+          ariaLabel={`Select item ${item.QuestionId}`}
+        />
+      )
+    },
     {
       id: 'id',
       header: 'ID',
@@ -345,6 +442,13 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
           variant="h1"
           actions={
             <SpaceBetween direction="horizontal" size="xs">
+              <Button 
+                variant="normal" 
+                disabled={selectedItems.length === 0}
+                onClick={() => setBulkDeleteModalVisible(true)}
+              >
+                Delete Selected ({selectedItems.length})
+              </Button>
               <Button variant="normal" onClick={() => setUploadModalVisible(true)}>
                 Upload Items
               </Button>
@@ -366,6 +470,7 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
           sortingColumn={sortingColumn}
           sortingDisabled={false}
           onSortingChange={handleSortingChange}
+          selectedItems={selectedItems}
           empty={
             <Box textAlign="center" color="inherit">
               <TextContent>
@@ -423,6 +528,7 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
                   {
                     label: "Item properties",
                     options: [
+                      AVAILABLE_COLUMNS.selection,
                       AVAILABLE_COLUMNS.id,
                       AVAILABLE_COLUMNS.question,
                       AVAILABLE_COLUMNS.type,
@@ -471,6 +577,26 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
         }
       >
         Are you sure you want to delete this item? This action cannot be undone.
+      </Modal>
+
+      {/* Bulk Delete Modal */}
+      <Modal
+        visible={bulkDeleteModalVisible}
+        onDismiss={() => setBulkDeleteModalVisible(false)}
+        header="Delete Selected Items"
+        data-testid="bulk-delete-modal"
+        footer={
+          <SpaceBetween direction="horizontal" size="xs">
+            <Button variant="link" onClick={() => setBulkDeleteModalVisible(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleBulkDelete}>
+              Delete {selectedItems.length} items
+            </Button>
+          </SpaceBetween>
+        }
+      >
+        Are you sure you want to delete {selectedItems.length} selected items? This action cannot be undone.
       </Modal>
 
       <BulkUpload
