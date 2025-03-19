@@ -159,7 +159,7 @@ export async function callBedrock(prompt: string): Promise<string> {
     // Claude 3.7 response format has content in the message
     if (parsedResponse && parsedResponse.content && Array.isArray(parsedResponse.content)) {
       // Find the text content - Claude 3.7 returns content as an array of different types
-      const textContent = parsedResponse.content.find(item => item.type === 'text');
+      const textContent = parsedResponse.content.find((item: { type: string; text?: string }) => item.type === 'text');
       if (textContent && textContent.text) {
         return textContent.text;
       }
