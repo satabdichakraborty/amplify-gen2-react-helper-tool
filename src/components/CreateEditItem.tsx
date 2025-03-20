@@ -17,8 +17,6 @@ import Checkbox from "@cloudscape-design/components/checkbox";
 import { client } from "../main";
 import { listItems, type Item, generateRationaleWithLLM, GeneratedRationale } from '../graphql/operations';
 import { EditableRationale } from './EditableRationale';
-import Modal from "@cloudscape-design/components/modal";
-import Box from "@cloudscape-design/components/box";
 import { LLMRationaleModal } from './LLMRationaleModal';
 
 // Style for the correct answer label
@@ -77,9 +75,6 @@ export function CreateEditItem() {
   const [currentItemIndex, setCurrentItemIndex] = useState<number>(-1);
   const [isFirstItem, setIsFirstItem] = useState<boolean>(false);
   const [isLastItem, setIsLastItem] = useState<boolean>(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
-  const [showNavigationModal, setShowNavigationModal] = useState<boolean>(false);
-  const [pendingNavigation, setPendingNavigation] = useState<'next' | 'previous' | null>(null);
 
   // New state variables for LLM rationale
   const [showLLMRationaleModal, setShowLLMRationaleModal] = useState<boolean>(false);
@@ -97,7 +92,7 @@ export function CreateEditItem() {
   useEffect(() => {
     let autoSaveTimer: NodeJS.Timeout;
 
-    if (autoSaveEnabled && hasUnsavedChanges && id) {
+    if (autoSaveEnabled && id) {
       // Clear any existing timers
       autoSaveTimer = setTimeout(async () => {
         try {
@@ -156,7 +151,6 @@ export function CreateEditItem() {
                 setLastAutoSave(new Date());
                 setAutoSaveStatus('success');
                 
-                // Don't reset hasUnsavedChanges as we want to continue tracking changes since last manual save
                 // But show success message briefly
                 setTimeout(() => {
                   if (autoSaveStatus === 'success') {
@@ -188,7 +182,6 @@ export function CreateEditItem() {
     };
   }, [
     autoSaveEnabled, 
-    hasUnsavedChanges, 
     id, 
     // Include all form fields to trigger auto-save when they change
     question, responseA, responseB, responseC, responseD,
@@ -197,25 +190,6 @@ export function CreateEditItem() {
     rationaleE, rationaleF, rationaleG, rationaleH,
     rationale, correctAnswers, isMultipleResponse
   ]);
-
-  // Track changes to form fields
-  useEffect(() => {
-    // Only track changes after initial loading
-    if (!loading && id) {
-      setHasUnsavedChanges(true);
-    }
-  }, [
-    question, responseA, responseB, responseC, responseD,
-    responseE, responseF, responseG, responseH,
-    rationaleA, rationaleB, rationaleC, rationaleD,
-    rationaleE, rationaleF, rationaleG, rationaleH,
-    rationale, topic, knowledgeSkills, status, correctAnswers
-  ]);
-
-  // Reset unsaved changes on successful save
-  const resetUnsavedChanges = () => {
-    setHasUnsavedChanges(false);
-  };
 
   // Parse Key field into array of correct answers
   const parseKeyField = (key: string): string[] => {
@@ -535,12 +509,6 @@ export function CreateEditItem() {
           };
           await client.models.Item.update(updatedItem);
           setSuccess('Item updated successfully!');
-          resetUnsavedChanges();
-          
-          // Execute pending navigation if there was one
-          if (pendingNavigation) {
-            executeNavigation();
-          }
         }
       } else {
         // Create new item
@@ -583,7 +551,6 @@ export function CreateEditItem() {
         };
         await client.models.Item.create(newItem);
         setSuccess('Item created successfully!');
-        resetUnsavedChanges();
       }
     } catch (err) {
       console.error('Error saving item:', err);
@@ -696,9 +663,6 @@ export function CreateEditItem() {
     
     // Show success message
     setSuccess('AI-generated rationale applied successfully');
-    
-    // Mark that we have unsaved changes
-    setHasUnsavedChanges(true);
   };
 
   // Update handleAddResponse and handleRemoveResponse
@@ -805,65 +769,15 @@ export function CreateEditItem() {
   // Add navigation functions
   const navigateToPreviousItem = () => {
     if (currentItemIndex > 0) {
-      if (hasUnsavedChanges) {
-        setPendingNavigation('previous');
-        setShowNavigationModal(true);
-      } else {
-        executeNavigation('previous');
-      }
+      const prevItem = allItems[currentItemIndex - 1];
+      navigate(`/items/${prevItem.QuestionId}/edit`);
     }
   };
 
   const navigateToNextItem = () => {
     if (currentItemIndex < allItems.length - 1) {
-      if (hasUnsavedChanges) {
-        setPendingNavigation('next');
-        setShowNavigationModal(true);
-      } else {
-        executeNavigation('next');
-      }
-    }
-  };
-
-  const executeNavigation = (direction?: 'next' | 'previous') => {
-    // Use the provided direction or fall back to pendingNavigation state
-    const navigationDirection = direction || pendingNavigation;
-    
-    if (navigationDirection === 'previous' && currentItemIndex > 0) {
-      const prevItem = allItems[currentItemIndex - 1];
-      navigate(`/items/${prevItem.QuestionId}/edit`);
-    } else if (navigationDirection === 'next' && currentItemIndex < allItems.length - 1) {
       const nextItem = allItems[currentItemIndex + 1];
       navigate(`/items/${nextItem.QuestionId}/edit`);
-    }
-    setShowNavigationModal(false);
-    setPendingNavigation(null);
-  };
-
-  const handleNavigationConfirm = async () => {
-    try {
-      // Save current changes
-      await handleSave(null);
-      
-      // Then navigate if save was successful
-      if (pendingNavigation) {
-        executeNavigation();
-      }
-    } catch (err) {
-      console.error('Error saving before navigation:', err);
-      setError('Failed to save changes before navigation');
-      setShowNavigationModal(false);
-    }
-  };
-
-  const handleNavigationCancel = () => {
-    setShowNavigationModal(false);
-    setPendingNavigation(null);
-  };
-
-  const handleNavigationDiscard = () => {
-    if (pendingNavigation) {
-      executeNavigation(pendingNavigation);
     }
   };
 
@@ -897,9 +811,9 @@ export function CreateEditItem() {
                         {autoSaveStatus === 'error' && (
                           <span style={{ color: '#d91515' }}>Save failed</span>
                         )}
-                        {lastAutoSave && autoSaveStatus === 'idle' && (
-                          <span style={{ color: '#9d9d9d', fontSize: '12px' }}>
-                            Last auto-saved: {lastAutoSave.toLocaleTimeString()}
+                        {lastAutoSave && (
+                          <span style={{ color: '#0073bb', fontSize: '13px', marginLeft: '4px' }}>
+                            Last saved: {lastAutoSave.toLocaleDateString()} {lastAutoSave.toLocaleTimeString()} 
                           </span>
                         )}
                       </div>
@@ -936,13 +850,15 @@ export function CreateEditItem() {
                       <Button onClick={() => navigate('/')} disabled={loading}>
                         Cancel
                       </Button>
-                      <Button 
-                        variant="primary" 
-                        onClick={handleSave}
-                        loading={loading}
-                      >
-                        {id ? 'Save changes' : 'Create item'}
-                      </Button>
+                      {!id && (
+                        <Button 
+                          variant="primary" 
+                          onClick={handleSave}
+                          loading={loading}
+                        >
+                          Create item
+                        </Button>
+                      )}
                     </SpaceBetween>
                   }
                 >
@@ -1128,25 +1044,6 @@ export function CreateEditItem() {
         toolsHide
       />
       
-      {/* Navigation Confirmation Modal moved outside AppLayout */}
-      <Modal
-        visible={showNavigationModal}
-        onDismiss={handleNavigationCancel}
-        header="Unsaved Changes"
-        footer={
-          <Box float="right">
-            <SpaceBetween direction="horizontal" size="xs">
-              <Button variant="link" onClick={handleNavigationCancel}>Cancel</Button>
-              <Button variant="normal" onClick={handleNavigationDiscard}>Discard Changes</Button>
-              <Button variant="primary" onClick={handleNavigationConfirm}>Save & Continue</Button>
-            </SpaceBetween>
-          </Box>
-        }
-        size="small"
-      >
-        <p>You have unsaved changes. What would you like to do?</p>
-      </Modal>
-
       {/* Add the LLM Rationale Modal */}
       <LLMRationaleModal
         visible={showLLMRationaleModal}
