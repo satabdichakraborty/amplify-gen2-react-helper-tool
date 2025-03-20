@@ -20,26 +20,64 @@ interface ItemDetailsProps {
 export const ItemDetails: React.FC<ItemDetailsProps> = ({ item, visible, onDismiss }) => {
   if (!item) return null;
 
-  // Create base response fields for A-D (only include if they have content)
-  const responseFields = [
-    { label: 'A', response: item.responseA, rationale: item.rationaleA },
-    { label: 'B', response: item.responseB, rationale: item.rationaleB },
-    { label: 'C', response: item.responseC, rationale: item.rationaleC },
-    { label: 'D', response: item.responseD, rationale: item.rationaleD }
-  ].filter(field => field.response && field.response.trim() !== '');
+  // Determine question type
+  const isMultipleResponse = item.Type === 'Multiple Response';
+  const isMultipleChoice = item.Type === 'Multiple Choice';
 
-  // Optional responses - only add if they have content
-  if (item.responseE && item.responseE.trim() !== '') {
-    responseFields.push({ label: 'E', response: item.responseE, rationale: item.rationaleE || '' });
+  // Create response fields with proper filtering for empty responses
+  const responseFields = [];
+  
+  // Always include A-D for Multiple Choice (if they have content)
+  if (isMultipleChoice) {
+    const requiredFields = [
+      { label: 'A', response: item.responseA, rationale: item.rationaleA },
+      { label: 'B', response: item.responseB, rationale: item.rationaleB },
+      { label: 'C', response: item.responseC, rationale: item.rationaleC },
+      { label: 'D', response: item.responseD, rationale: item.rationaleD },
+    ];
+    
+    // Only add responses that actually have content
+    responseFields.push(...requiredFields.filter(field => field.response && field.response.trim() !== ''));
+  } 
+  // For Multiple Response, should have minimum 5 and maximum 6 responses
+  else if (isMultipleResponse) {
+    const allFields = [
+      { label: 'A', response: item.responseA, rationale: item.rationaleA },
+      { label: 'B', response: item.responseB, rationale: item.rationaleB },
+      { label: 'C', response: item.responseC, rationale: item.rationaleC },
+      { label: 'D', response: item.responseD, rationale: item.rationaleD },
+      { label: 'E', response: item.responseE, rationale: item.rationaleE },
+      { label: 'F', response: item.responseF, rationale: item.rationaleF },
+    ];
+    
+    // Only add responses that actually have content
+    responseFields.push(...allFields.filter(field => field.response && field.response.trim() !== ''));
   }
-  if (item.responseF && item.responseF.trim() !== '') {
-    responseFields.push({ label: 'F', response: item.responseF, rationale: item.rationaleF || '' });
-  }
-  if (item.responseG && item.responseG.trim() !== '') {
-    responseFields.push({ label: 'G', response: item.responseG, rationale: item.rationaleG || '' });
-  }
-  if (item.responseH && item.responseH.trim() !== '') {
-    responseFields.push({ label: 'H', response: item.responseH, rationale: item.rationaleH || '' });
+  // Default case for other question types or when type is not specified
+  else {
+    const baseFields = [
+      { label: 'A', response: item.responseA, rationale: item.rationaleA },
+      { label: 'B', response: item.responseB, rationale: item.rationaleB },
+      { label: 'C', response: item.responseC, rationale: item.rationaleC },
+      { label: 'D', response: item.responseD, rationale: item.rationaleD },
+    ];
+    
+    // Only add base responses that have content
+    responseFields.push(...baseFields.filter(field => field.response && field.response.trim() !== ''));
+    
+    // Add optional responses only if they have content
+    if (item.responseE && item.responseE.trim() !== '') {
+      responseFields.push({ label: 'E', response: item.responseE, rationale: item.rationaleE || '' });
+    }
+    if (item.responseF && item.responseF.trim() !== '') {
+      responseFields.push({ label: 'F', response: item.responseF, rationale: item.rationaleF || '' });
+    }
+    if (item.responseG && item.responseG.trim() !== '') {
+      responseFields.push({ label: 'G', response: item.responseG, rationale: item.rationaleG || '' });
+    }
+    if (item.responseH && item.responseH.trim() !== '') {
+      responseFields.push({ label: 'H', response: item.responseH, rationale: item.rationaleH || '' });
+    }
   }
 
   // Determine which responses are correct
@@ -101,7 +139,7 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({ item, visible, onDismi
                 </Box>
                 <div>{field.response}</div>
                 
-                {field.rationale && (
+                {field.rationale && field.rationale.trim() !== '' && (
                   <div style={{ marginTop: '8px' }}>
                     <Box variant="awsui-key-label">Rationale {field.label}</Box>
                     <RationaleDisplay text={field.rationale} maxHeight="200px" />
@@ -112,7 +150,7 @@ export const ItemDetails: React.FC<ItemDetailsProps> = ({ item, visible, onDismi
           </SpaceBetween>
         </Container>
 
-        {item.Rationale && (
+        {item.Rationale && item.Rationale.trim() !== '' && (
           <Container header={<Header variant="h3">General Rationale</Header>}>
             <RationaleDisplay text={item.Rationale} maxHeight="300px" />
           </Container>

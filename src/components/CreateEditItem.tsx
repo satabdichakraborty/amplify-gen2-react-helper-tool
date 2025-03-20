@@ -256,66 +256,86 @@ export function CreateEditItem() {
     fetchItem();
   }, [id]);
 
-  // Modify the useEffect for question type switching to enforce new limits
+  // When question type changes, update the number of responses to show
   useEffect(() => {
     if (isMultipleResponse) {
-      // For Multiple Response, show exactly 5 responses by default, max 6
+      // For Multiple Response, show minimum 5, maximum 6 responses
       if (numResponsesToShow < 5) {
         setNumResponsesToShow(5);
-      } else if (numResponsesToShow > 6) {
-        setNumResponsesToShow(6);
       }
-      
-      // Update the question type
-      setIsMultipleResponse(true);
     } else {
-      // For Multiple Choice, show exactly 4 responses
-      setNumResponsesToShow(4);
-      
-      // Update the question type
-      setIsMultipleResponse(false);
-      
-      // If switching from Multiple Response to Multiple Choice, ensure only one answer is selected
-      if (correctAnswers.length > 1) {
-        setCorrectAnswers([correctAnswers[0]]);
+      // For Multiple Choice, maximum 4 responses
+      if (numResponsesToShow > 4) {
+        setNumResponsesToShow(4);
       }
     }
   }, [isMultipleResponse]);
 
+  // Update validateForm to enforce response limits based on question type
   const validateForm = () => {
-    // Basic validation
-    if (!question.trim()) {
+    if (!question) {
       setError('Question is required');
       return false;
     }
-    
-    // Validate responses
-    if (!responseA.trim() || !responseB.trim()) {
+
+    if (!responseA || !responseB) {
       setError('At least two responses (A and B) are required');
       return false;
     }
-    
-    // Ensure we have at least one correct answer
-    if (correctAnswers.length === 0) {
-      setError('At least one response must be marked as correct');
+
+    // For Multiple Choice, check if at least one correct answer is selected
+    if (!isMultipleResponse && correctAnswers.length === 0) {
+      setError('Please select a correct answer');
       return false;
     }
-    
-    // If Multiple Choice, ensure only one answer is selected
-    if (!isMultipleResponse && correctAnswers.length > 1) {
-      setError('Multiple Choice questions can only have one correct answer');
-      return false;
+
+    // For Multiple Response, check minimum 5 responses
+    if (isMultipleResponse) {
+      // Count populated responses
+      const populatedResponses = [
+        responseA?.trim() !== '', 
+        responseB?.trim() !== '', 
+        responseC?.trim() !== '', 
+        responseD?.trim() !== '',
+        responseE?.trim() !== '',
+        responseF?.trim() !== ''
+      ].filter(Boolean).length;
+      
+      if (populatedResponses < 5) {
+        setError('Multiple Response questions must have at least 5 responses');
+        return false;
+      }
+      
+      // Ensure at least one correct answer is selected
+      if (correctAnswers.length === 0) {
+        setError('Please select at least one correct answer');
+        return false;
+      }
     }
-    
-    // For Multiple Response, ensure we don't exceed 3 correct answers
-    if (isMultipleResponse && correctAnswers.length > 3) {
-      setError('Multiple Response questions cannot have more than 3 correct answers');
-      return false;
+
+    // Check that only populated responses are marked as correct
+    for (const answer of correctAnswers) {
+      const responseValue = getResponseValue(answer);
+      if (!responseValue || responseValue.trim() === '') {
+        setError(`Response ${answer} is marked as correct but has no content`);
+        return false;
+      }
     }
-    
-    // Clear any previous errors
-    setError(null);
+
     return true;
+  };
+
+  // Helper to get the response value for a given letter
+  const getResponseValue = (letter: string): string => {
+    switch (letter) {
+      case 'A': return responseA;
+      case 'B': return responseB;
+      case 'C': return responseC;
+      case 'D': return responseD;
+      case 'E': return responseE;
+      case 'F': return responseF;
+      default: return '';
+    }
   };
 
   const handleResponseChange = (index: number, field: 'text' | 'rationale', value: string) => {
@@ -567,7 +587,7 @@ export function CreateEditItem() {
     setHasUnsavedChanges(true);
   };
 
-  // Update the handleAddResponse and handleRemoveResponse functions
+  // Update handleAddResponse and handleRemoveResponse
   const handleAddResponse = () => {
     if (isMultipleResponse && numResponsesToShow < 6) {
       setNumResponsesToShow(numResponsesToShow + 1);
@@ -587,15 +607,15 @@ export function CreateEditItem() {
     }
   };
 
-  // Function to render a response section with consistent styling
+  // Update renderResponseSection to hide empty responses
   const renderResponseSection = (
     letter: string, 
     responseValue: string, 
     rationaleValue: string, 
     index: number
   ) => {
-    // Don't render if response is empty (for all responses)
-    if (!responseValue || responseValue.trim() === '') {
+    // Skip rendering based on question type and index
+    if (isMultipleResponse && index >= 6) {
       return null;
     }
     
@@ -893,9 +913,9 @@ export function CreateEditItem() {
                           {renderResponseSection('C', responseC, rationaleC, 2)}
                           {renderResponseSection('D', responseD, rationaleD, 3)}
                           
-                          {/* Conditional responses E-F based on numResponsesToShow and content */}
-                          {numResponsesToShow >= 5 && renderResponseSection('E', responseE, rationaleE, 4)}
-                          {numResponsesToShow >= 6 && renderResponseSection('F', responseF, rationaleF, 5)}
+                          {/* Conditional responses E-F based on question type and numResponsesToShow */}
+                          {isMultipleResponse && numResponsesToShow >= 5 && renderResponseSection('E', responseE, rationaleE, 4)}
+                          {isMultipleResponse && numResponsesToShow >= 6 && renderResponseSection('F', responseF, rationaleF, 5)}
                           
                           {/* Add/Remove response controls for Multiple Response */}
                           {isMultipleResponse && (
