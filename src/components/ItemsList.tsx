@@ -440,7 +440,7 @@ export function ItemsList({ }: ItemsListProps) {
     <Container>
       <SpaceBetween size="l">
         <div style={{ display: 'flex', alignItems: 'center', padding: '20px 0' }}>
-          <img src={awsLogo} alt="AWS Logo" style={{ height: '60px', marginRight: '20px' }} />
+          <img src={awsLogo} alt="AWS Logo" style={{ height: '50px', marginRight: '20px' }} />
           <Header variant="h1">
             AWS Certification Helper Tool
           </Header>
@@ -466,7 +466,6 @@ export function ItemsList({ }: ItemsListProps) {
             </SpaceBetween>
           }
         >
-          Questions Database
         </Header>
 
         <Table
