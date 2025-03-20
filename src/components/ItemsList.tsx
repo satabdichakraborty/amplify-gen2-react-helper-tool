@@ -20,6 +20,7 @@ import { applyMode, Mode } from "@cloudscape-design/global-styles";
 import { listItems, deleteItem, type Item } from '../graphql/operations';
 import { BulkUpload } from './BulkUpload';
 import { ItemDetails } from './ItemDetails';
+import awsLogo from '../assets/aws-logo.png';
 
 // Apply light mode to match AWS Console
 applyMode(Mode.Light);
@@ -52,7 +53,7 @@ const DEFAULT_PREFERENCES = {
   visibleContent: DEFAULT_VISIBLE_COLUMNS
 };
 
-export function ItemsList({ title = 'Items' }: ItemsListProps) {
+export function ItemsList({ }: ItemsListProps) {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<{ message: string; details?: string } | null>(null);
@@ -60,7 +61,7 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
-  const [wrapQuestions, setWrapQuestions] = useState(false);
+  const [wrapQuestions, setWrapQuestions] = useState(true);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [detailsModalVisible, setDetailsModalVisible] = useState<boolean>(false);
   // States for bulk delete
@@ -438,8 +439,15 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
   return (
     <Container>
       <SpaceBetween size="l">
+        <div style={{ display: 'flex', alignItems: 'center', padding: '20px 0' }}>
+          <img src={awsLogo} alt="AWS Logo" style={{ height: '60px', marginRight: '20px' }} />
+          <Header variant="h1">
+            AWS Certification Helper Tool
+          </Header>
+        </div>
+
         <Header
-          variant="h1"
+          variant="h2"
           actions={
             <SpaceBetween direction="horizontal" size="xs">
               <Button 
@@ -458,7 +466,7 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
             </SpaceBetween>
           }
         >
-          {title}
+          Questions Database
         </Header>
 
         <Table
@@ -492,7 +500,7 @@ export function ItemsList({ title = 'Items' }: ItemsListProps) {
                 </SpaceBetween>
               }
             >
-              Items
+              Certification Questions
             </Header>
           }
           pagination={
