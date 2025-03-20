@@ -86,6 +86,117 @@ export function CreateEditItem() {
   const [llmRationaleLoading, setLLMRationaleLoading] = useState<boolean>(false);
   const [llmRationaleError, setLLMRationaleError] = useState<string | null>(null);
   const [generatedRationale, setGeneratedRationale] = useState<GeneratedRationale | null>(null);
+  
+  // Auto-save functionality
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState<boolean>(true);
+  const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const AUTO_SAVE_INTERVAL = 30000; // 30 seconds
+
+  // Auto-save effect
+  useEffect(() => {
+    let autoSaveTimer: NodeJS.Timeout;
+
+    if (autoSaveEnabled && hasUnsavedChanges && id) {
+      // Clear any existing timers
+      autoSaveTimer = setTimeout(async () => {
+        try {
+          setAutoSaveStatus('saving');
+          
+          // Only auto-save if we've loaded an existing item
+          if (id && createdDate) {
+            // Check if form is valid before attempting to save
+            if (validateForm()) {
+              // Get the existing item
+              const existingItem = await client.models.Item.get({ 
+                QuestionId: parseInt(id, 10),
+                CreatedDate: createdDate
+              });
+              
+              if (existingItem) {
+                const updatedItem = {
+                  QuestionId: parseInt(id, 10),
+                  CreatedDate: createdDate,
+                  Question: question,
+                  Type: isMultipleResponse ? 'Multiple Response' : 'Multiple Choice',
+                  Status: status,
+                  Key: correctAnswers.join(''),
+                  responseA: responseA,
+                  responseB: responseB,
+                  responseC: responseC,
+                  responseD: responseD,
+                  responseE: responseE,
+                  responseF: responseF,
+                  responseG: responseG,
+                  responseH: responseH,
+                  rationaleA: rationaleA,
+                  rationaleB: rationaleB,
+                  rationaleC: rationaleC,
+                  rationaleD: rationaleD,
+                  rationaleE: rationaleE,
+                  rationaleF: rationaleF,
+                  rationaleG: rationaleG,
+                  rationaleH: rationaleH,
+                  Topic: topic,
+                  Rationale: rationale,
+                  KnowledgeSkills: knowledgeSkills,
+                  CreatedBy: createdBy || 'system',
+                  // Include LLM fields if available
+                  LLMKey: generatedRationale?.llmKey || existingItem.data?.LLMKey || '',
+                  LLMRationaleA: generatedRationale?.llmRationaleA || existingItem.data?.LLMRationaleA || '',
+                  LLMRationaleB: generatedRationale?.llmRationaleB || existingItem.data?.LLMRationaleB || '',
+                  LLMRationaleC: generatedRationale?.llmRationaleC || existingItem.data?.LLMRationaleC || '',
+                  LLMRationaleD: generatedRationale?.llmRationaleD || existingItem.data?.LLMRationaleD || '',
+                  LLMRationaleE: generatedRationale?.llmRationaleE || existingItem.data?.LLMRationaleE || '',
+                  LLMRationaleF: generatedRationale?.llmRationaleF || existingItem.data?.LLMRationaleF || '',
+                  LLMGeneralRationale: generatedRationale?.llmGeneralRationale || existingItem.data?.LLMGeneralRationale || '',
+                };
+                
+                await client.models.Item.update(updatedItem);
+                setLastAutoSave(new Date());
+                setAutoSaveStatus('success');
+                
+                // Don't reset hasUnsavedChanges as we want to continue tracking changes since last manual save
+                // But show success message briefly
+                setTimeout(() => {
+                  if (autoSaveStatus === 'success') {
+                    setAutoSaveStatus('idle');
+                  }
+                }, 3000);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Auto-save error:', error);
+          setAutoSaveStatus('error');
+          
+          // Reset status after some time
+          setTimeout(() => {
+            if (autoSaveStatus === 'error') {
+              setAutoSaveStatus('idle');
+            }
+          }, 3000);
+        }
+      }, AUTO_SAVE_INTERVAL);
+    }
+
+    // Cleanup function
+    return () => {
+      if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer);
+      }
+    };
+  }, [
+    autoSaveEnabled, 
+    hasUnsavedChanges, 
+    id, 
+    // Include all form fields to trigger auto-save when they change
+    question, responseA, responseB, responseC, responseD,
+    responseE, responseF, responseG, responseH,
+    rationaleA, rationaleB, rationaleC, rationaleD,
+    rationaleE, rationaleF, rationaleG, rationaleH,
+    rationale, correctAnswers, isMultipleResponse
+  ]);
 
   // Track changes to form fields
   useEffect(() => {
@@ -367,8 +478,11 @@ export function CreateEditItem() {
     }
   };
 
-  const handleSave = async (e: any) => {
-    e.preventDefault();
+  const handleSave = async (e?: any) => {
+    if (e) {
+      e.preventDefault();
+    }
+    
     try {
       if (!validateForm()) {
         console.log('Form validation failed');
@@ -728,11 +842,8 @@ export function CreateEditItem() {
 
   const handleNavigationConfirm = async () => {
     try {
-      // Create a synthetic event to pass to handleSave
-      const syntheticEvent = { preventDefault: () => {} };
-      
       // Save current changes
-      await handleSave(syntheticEvent);
+      await handleSave(null);
       
       // Then navigate if save was successful
       if (pendingNavigation) {
@@ -769,13 +880,38 @@ export function CreateEditItem() {
                   >
                     {id ? 'Edit Item' : 'Create New Item'}
                   </Header>
-                  <div style={{ width: '250px' }}>
-                    <Select
-                      selectedOption={selectedAction}
-                      onChange={handleActionChange}
-                      options={actionOptions}
-                      placeholder="Select an action"
-                    />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    {id && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
+                        <Toggle
+                          checked={autoSaveEnabled}
+                          onChange={({ detail }) => setAutoSaveEnabled(detail.checked)}
+                        />
+                        <span>Auto-save</span>
+                        {autoSaveStatus === 'saving' && (
+                          <span style={{ color: '#9d9d9d' }}>Saving...</span>
+                        )}
+                        {autoSaveStatus === 'success' && (
+                          <span style={{ color: '#037f0c' }}>Saved</span>
+                        )}
+                        {autoSaveStatus === 'error' && (
+                          <span style={{ color: '#d91515' }}>Save failed</span>
+                        )}
+                        {lastAutoSave && autoSaveStatus === 'idle' && (
+                          <span style={{ color: '#9d9d9d', fontSize: '12px' }}>
+                            Last auto-saved: {lastAutoSave.toLocaleTimeString()}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    <div style={{ width: '250px' }}>
+                      <Select
+                        selectedOption={selectedAction}
+                        onChange={handleActionChange}
+                        options={actionOptions}
+                        placeholder="Select an action"
+                      />
+                    </div>
                   </div>
                 </div>
                 
