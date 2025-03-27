@@ -1,0 +1,252 @@
+/* Prompt Management Styles */
+.prompt-management-container {
+  max-width: 100%;
+  padding: 2rem;
+  background-color: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 1px 0 rgba(0, 28, 36, 0.1), 0 1px 3px 1px rgba(0, 28, 36, 0.08);
+  border-top: 2px solid #e9ebed;
+}
+
+.prompt-management-container h1 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: #0f1b2a;
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+
+.prompt-management-container h2 {
+  margin-bottom: 0.75rem;
+  font-size: 1.125rem;
+  color: #0f1b2a;
+  font-weight: 600;
+}
+
+.prompt-management-layout {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 1.5rem;
+}
+
+.prompts-list-section {
+  border-right: 1px solid #e9ebed;
+  padding-right: 1.5rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.prompts-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.prompts-list li {
+  display: flex;
+  margin-bottom: 0.5rem;
+  border: 1px solid #e9ebed;
+  border-radius: 4px;
+  background-color: #f8f8f8;
+  transition: all 0.2s;
+  align-items: center;
+}
+
+.prompts-list li.selected {
+  border-color: #0972d3;
+  background-color: #f2f8fd;
+}
+
+.prompt-item {
+  flex: 1;
+  padding: 0.75rem;
+  cursor: pointer;
+}
+
+.prompt-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.prompt-name {
+  font-weight: 600;
+  color: #0f1b2a;
+}
+
+.prompt-version {
+  font-size: 0.75rem;
+  color: #5f6b7a;
+  background-color: #e9ebed;
+  padding: 0.125rem 0.375rem;
+  border-radius: 10px;
+}
+
+.prompt-description {
+  font-size: 0.875rem;
+  color: #5f6b7a;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.delete-button {
+  background-color: #ffffff;
+  color: #d91515;
+  border: 1px solid #d91515;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  margin-right: 0.5rem;
+  transition: all 0.2s;
+}
+
+.delete-button:hover {
+  background-color: #fdf2f2;
+}
+
+.prompt-editor-section {
+  padding: 1rem;
+  background-color: #f8f8f8;
+  border-radius: 4px;
+}
+
+.form-field {
+  margin-bottom: 1rem;
+}
+
+.form-field label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.form-field input,
+.form-field textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #7d8998;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.form-field textarea {
+  resize: vertical;
+  font-family: monospace;
+}
+
+.button-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.error-message {
+  color: #d91515;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  background-color: #fdf2f2;
+  border-radius: 4px;
+  border-left: 3px solid #d91515;
+}
+
+.empty-state {
+  padding: 1rem;
+  text-align: center;
+  color: #5f6b7a;
+  font-style: italic;
+}
+
+.empty-state-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  background-color: #f8f8f8;
+  border: 1px dashed #7d8998;
+  border-radius: 4px;
+  text-align: center;
+  padding: 2rem;
+  color: #5f6b7a;
+}
+
+/* AWS UI Button Styles */
+.prompt-management-container button.awsui-button-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  padding: 0 1rem;
+  height: 32px;
+  background-color: #ff9900;
+  color: #ffffff;
+  border: 1px solid #e76d0c;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  box-shadow: 0 1px 1px rgba(0, 28, 36, 0.15);
+}
+
+.prompt-management-container button.awsui-button-primary:hover {
+  background-color: #ec7211;
+  border-color: #c86400;
+}
+
+.prompt-management-container button.awsui-button-primary:disabled {
+  background-color: #cccccc;
+  border-color: #999999;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.prompt-management-container button.awsui-button-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  padding: 0 1rem;
+  height: 32px;
+  background-color: #ffffff;
+  color: #0972d3;
+  border: 1px solid #0972d3;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  box-shadow: 0 1px 1px rgba(0, 28, 36, 0.15);
+}
+
+.prompt-management-container button.awsui-button-secondary:hover {
+  background-color: #f2f3f3;
+  text-decoration: underline;
+}
+
+/* Media Queries for Responsive Design */
+@media (max-width: 768px) {
+  .prompt-management-layout {
+    grid-template-columns: 1fr;
+  }
+  
+  .prompts-list-section {
+    border-right: none;
+    padding-right: 0;
+    border-bottom: 1px solid #e9ebed;
+    padding-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+} 

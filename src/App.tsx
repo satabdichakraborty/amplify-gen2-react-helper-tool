@@ -1,21 +1,24 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ItemsList } from './components/ItemsList';
 import { CreateEditItem } from './components/CreateEditItem';
-import { Footer } from './components/Footer';
+import { Layout } from './components/Layout';
+import { QuestionFormatter } from './components/QuestionFormatter';
+import { PromptManagement } from './components/PromptManagement';
 import './App.css';
 
 function App() {
   return (
     <Router>
-      <div className="app-wrapper">
+      <Layout>
         <Routes>
           <Route path="/" element={<ItemsList />} />
           <Route path="/items" element={<ItemsList />} />
           <Route path="/items/new" element={<CreateEditItem />} />
           <Route path="/items/:id/edit" element={<CreateEditItem />} />
+          <Route path="/utilities/question-formatter" element={<QuestionFormatter />} />
+          <Route path="/utilities/prompt-management" element={<PromptManagement />} />
         </Routes>
-        <Footer />
-      </div>
+      </Layout>
     </Router>
   );
 }
