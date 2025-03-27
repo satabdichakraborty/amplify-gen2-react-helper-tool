@@ -64,7 +64,7 @@ Then give me the reason why other options are incorrect.
 
 CONTEXT:
 I have a ${type} question and I need you to:
-1. Determine the correct answer
+1. Determine the correct answer or answers. Provide AWS Documentation link for the correct answer(s).
 2. Provide a detailed explanation for why each option is correct or incorrect
 
 QUESTION:
