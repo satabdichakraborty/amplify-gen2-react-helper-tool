@@ -56,11 +56,7 @@ export function createPrompt(request: GenerateRationaleRequest): string {
   
   // Build the prompt
   let prompt = `
-You are an expert in educational assessment and certification exam question analysis. 
-You are an AWS expert and have a deep understanding of AWS services and their capabilities.
-Please go step by step and validate this AWS certification question. Tell me the correct answer first with explatation. 
-Provide aws documentation link for correct answer. 
-Then give me the reason why other options are incorrect.
+You are an expert in educational assessment and certification exam question analysis. You are an AWS expert and have a deep understanding of AWS services and their capabilities.
 
 CONTEXT:
 I have a ${type} question and I need you to:
@@ -136,7 +132,7 @@ export async function callBedrock(prompt: string): Promise<string> {
       anthropic_version: "bedrock-2023-05-31",
       max_tokens: 4096,
       temperature: 0.2,
-      system: "You are an expert in educational assessment and AWS certification exam question analysis. Respond with valid JSON only.",
+      system: "You are an expert in educational assessment and certification exam question analysis. Respond with valid JSON only.",
       messages: [
         {
           role: "user", 
@@ -144,6 +140,18 @@ export async function callBedrock(prompt: string): Promise<string> {
         }
       ]
     };
+    
+    // Log the request to Bedrock
+    console.log('Bedrock Request:', JSON.stringify({
+      modelId: MODEL_ID,
+      requestBody: {
+        ...requestBody,
+        messages: requestBody.messages.map(msg => ({
+          ...msg,
+          content: msg.content.substring(0, 100) + '...' // Log only first 100 chars of prompt
+        }))
+      }
+    }, null, 2));
     
     // Create the command
     const command = new InvokeModelCommand({
@@ -159,6 +167,9 @@ export async function callBedrock(prompt: string): Promise<string> {
     // Parse the response
     const responseBody = new TextDecoder().decode(response.body);
     const parsedResponse = JSON.parse(responseBody);
+    
+    // Log the raw response from Bedrock
+    console.log('Bedrock Raw Response:', JSON.stringify(parsedResponse, null, 2));
     
     // Claude 3.7 response format has content in the message
     if (parsedResponse && parsedResponse.content && Array.isArray(parsedResponse.content)) {
@@ -192,7 +203,8 @@ export async function callBedrock(prompt: string): Promise<string> {
 // Main handler function
 export async function handler(event: LambdaEvent) {
   try {
-    console.log('Received event:', JSON.stringify(event));
+    // Log the incoming event
+    console.log('Lambda Event:', JSON.stringify(event, null, 2));
     
     // Extract request data from event
     let requestData: GenerateRationaleRequest;
@@ -225,21 +237,33 @@ export async function handler(event: LambdaEvent) {
       requestData = event as unknown as GenerateRationaleRequest;
     }
     
+    // Log the extracted request data
+    console.log('Extracted Request Data:', JSON.stringify(requestData, null, 2));
+    
     // Create the prompt
     const prompt = createPrompt(requestData);
+    
+    // Log the generated prompt
+    console.log('Generated Prompt:', prompt);
     
     // Call the LLM
     const responseText = await callBedrock(prompt);
     
+    // Log the raw response from the LLM
+    console.log('LLM Raw Response:', responseText);
+    
     // Parse the model's response
     const rationaleResponse = parseModelResponse(responseText);
+    
+    // Log the parsed response
+    console.log('Parsed Rationale Response:', JSON.stringify(rationaleResponse, null, 2));
     
     return {
       statusCode: 200,
       body: rationaleResponse,
     };
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error in handler:', error);
     return {
       statusCode: 500,
       body: {

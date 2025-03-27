@@ -53,6 +53,13 @@ export const LLMRationaleModal: React.FC<LLMRationaleModalProps> = ({
   // Filter out responses with empty text
   const filteredResponses = responses.filter(response => response.text && response.text.trim() !== '');
 
+  // Get the full text of the selected answer
+  const getSelectedAnswerText = () => {
+    if (!generatedRationale) return '';
+    const selectedResponse = filteredResponses.find(response => response.letter === generatedRationale.llmKey);
+    return selectedResponse ? selectedResponse.text : '';
+  };
+
   return (
     <Modal
       visible={visible}
@@ -105,15 +112,20 @@ export const LLMRationaleModal: React.FC<LLMRationaleModalProps> = ({
               >
                 AI Analysis
               </Header>
-              <ExpandableSection headerText="General Explanation" defaultExpanded>
+              <Box>
+                <Header variant="h4">Selected Answer</Header>
+                <p>{getSelectedAnswerText()}</p>
+              </Box>
+              <Box>
+                <Header variant="h4">General Explanation</Header>
                 <div style={{ whiteSpace: 'pre-wrap' }}>
                   {generatedRationale.llmGeneralRationale}
                 </div>
-              </ExpandableSection>
+              </Box>
             </Container>
             
             <Container>
-              <Header variant="h3">Response Analysis</Header>
+              <Header variant="h3">Detailed Analysis</Header>
               <SpaceBetween size="l">
                 {filteredResponses.map(response => (
                   <ExpandableSection 
