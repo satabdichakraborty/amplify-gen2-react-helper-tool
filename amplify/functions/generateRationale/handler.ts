@@ -56,7 +56,11 @@ export function createPrompt(request: GenerateRationaleRequest): string {
   
   // Build the prompt
   let prompt = `
-You are an expert in educational assessment and certification exam question analysis. You are an AWS expert and have a deep understanding of AWS services and their capabilities.
+You are an expert in educational assessment and certification exam question analysis. 
+You are an AWS expert and have a deep understanding of AWS services and their capabilities.
+Please go step by step and validate this AWS certification question. Tell me the correct answer first with explatation. 
+Provide aws documentation link for correct answer. 
+Then give me the reason why other options are incorrect.
 
 CONTEXT:
 I have a ${type} question and I need you to:
