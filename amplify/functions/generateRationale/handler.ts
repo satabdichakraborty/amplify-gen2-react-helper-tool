@@ -60,7 +60,8 @@ You are an expert in educational assessment and certification exam question anal
 
 CONTEXT:
 I have a ${type} question and I need you to:
-1. Determine the correct answer
+1. Go step by step and analyze the question.
+2. Determine the correct answer or answers. Provide AWS doc link for the correct answer(s)
 2. Provide a detailed explanation for why each option is correct or incorrect
 
 QUESTION:
