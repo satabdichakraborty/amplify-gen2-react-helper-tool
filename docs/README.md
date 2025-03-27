@@ -13,6 +13,18 @@ This directory contains the documentation for the AWS Amplify Gen2 React Helper 
   - Development guidelines
   - Security considerations
 
+- [AMPLIFY_GEN2.md](./AMPLIFY_GEN2.md) - Amplify Gen2 configuration and implementation details including:
+  - Backend configuration
+  - Authentication setup
+  - Data model and API
+  - Frontend integration
+  - Authorization modes
+  - Type safety
+  - Best practices
+  - Deployment process
+  - Security considerations
+  - Troubleshooting guide
+
 ## Additional Documentation
 
 For more information about the project, please refer to:
