@@ -1,5 +1,10 @@
 // Importing AWS SDK for Bedrock
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
+import { generateClient } from 'aws-amplify/data';
+import type { Schema } from '../../data/resource';
+
+// Initialize the Amplify client
+const client = generateClient<Schema>();
 
 // Define types for the request and response
 export type GenerateRationaleRequest = {
@@ -49,43 +54,54 @@ export interface LambdaEvent {
   [key: string]: any;
 }
 
+// Load prompt from the database
+async function loadPrompt(promptName: string): Promise<string> {
+  try {
+    console.log(`Loading prompt: ${promptName}`);
+    const { data: prompt } = await client.models.Prompt.get({
+      name: promptName
+    });
+
+    if (!prompt) {
+      console.error(`Prompt not found: ${promptName}`);
+      throw new Error(`Prompt not found: ${promptName}`);
+    }
+
+    console.log(`Successfully loaded prompt: ${promptName}`);
+    return prompt.content;
+  } catch (error) {
+    console.error(`Error loading prompt ${promptName}:`, error);
+    throw error;
+  }
+}
+
 // Create the prompt for the model
-export function createPrompt(request: GenerateRationaleRequest): string {
+export async function createPrompt(request: GenerateRationaleRequest): Promise<string> {
   // Extract the question and response options
   const { question, responseA, responseB, responseC, responseD, responseE, responseF, type } = request;
   
-  // Build the prompt
-  let prompt = `
-You are an expert in educational assessment and certification exam question analysis. You are an AWS expert and have a deep understanding of AWS services and their capabilities.
+  // Load system prompt and user prompt template
+  const [systemPrompt, userPromptTemplate] = await Promise.all([
+    loadPrompt('rationale-system-prompt'),
+    loadPrompt('rationale-user-template')
+  ]);
+  
+  // Build the prompt using the templates
+  let prompt = `${systemPrompt}
 
-CONTEXT:
-I have a ${type} question and I need you to:
-1. Determine the correct answer or answers. Provide AWS Documentation link for the correct answer(s).
-2. Provide a detailed explanation for why each option is correct or incorrect
-
-QUESTION:
-${question}
-
-RESPONSE OPTIONS:
-A: ${responseA}
-B: ${responseB}
-C: ${responseC}
-D: ${responseD}
-${responseE ? `E: ${responseE}\n` : ''}
-${responseF ? `F: ${responseF}\n` : ''}
-
-Please provide your analysis in the following JSON format. Do not include any other text or explanation outside the JSON:
-{
-  "correctAnswer": "<letter of correct answer, or comma-separated letters for multiple response>",
-  "rationaleA": "<explanation for option A>",
-  "rationaleB": "<explanation for option B>",
-  "rationaleC": "<explanation for option C>",
-  "rationaleD": "<explanation for option D>",
-  ${responseE ? `"rationaleE": "<explanation for option E>",\n` : ''}
-  ${responseF ? `"rationaleF": "<explanation for option F>",\n` : ''}
-  "generalRationale": "<overall explanation for the correct answer>"
-}
-`;
+${userPromptTemplate.replace(/\${(\w+)}/g, (match, key) => {
+  switch (key) {
+    case 'type': return type;
+    case 'question': return question;
+    case 'responseA': return responseA;
+    case 'responseB': return responseB;
+    case 'responseC': return responseC;
+    case 'responseD': return responseD;
+    case 'responseE': return responseE || '';
+    case 'responseF': return responseF || '';
+    default: return match;
+  }
+})}`;
 
   return prompt;
 }
@@ -132,7 +148,7 @@ export async function callBedrock(prompt: string): Promise<string> {
       anthropic_version: "bedrock-2023-05-31",
       max_tokens: 4096,
       temperature: 0.2,
-      system: "You are an expert in educational assessment and certification exam question analysis. Respond with valid JSON only.",
+      system: "You are an expert in educational assessment and AWS certification exam question analysis. Respond with valid JSON only.",
       messages: [
         {
           role: "user", 
@@ -241,7 +257,7 @@ export async function handler(event: LambdaEvent) {
     console.log('Extracted Request Data:', JSON.stringify(requestData, null, 2));
     
     // Create the prompt
-    const prompt = createPrompt(requestData);
+    const prompt = await createPrompt(requestData);
     
     // Log the generated prompt
     console.log('Generated Prompt:', prompt);

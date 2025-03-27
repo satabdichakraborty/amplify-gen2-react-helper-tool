@@ -1,7 +1,7 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 
 /*== STEP 1 ===============================================================
-The section below creates a database table for storing question data.
+The section below creates database tables for storing question data and LLM prompts.
 =========================================================================*/
 const schema = a.schema({
   Item: a
@@ -46,7 +46,23 @@ const schema = a.schema({
       updatedAt: a.datetime()
     })
     .authorization((allow) => [allow.publicApiKey()])
-    .identifier(['QuestionId', 'CreatedDate'])
+    .identifier(['QuestionId', 'CreatedDate']),
+
+  Prompt: a
+    .model({
+      name: a.string().required(),        // The name/key of the prompt
+      content: a.string().required(),     // The actual prompt text
+      description: a.string(),            // Optional description of the prompt's purpose
+      version: a.integer(),               // Optional version number for tracking changes
+      createdAt: a.datetime(),
+      updatedAt: a.datetime()
+    })
+    .authorization((allow) => [
+      allow.publicApiKey(),               // Allow Lambda functions to access
+      allow.authenticated(),              // Allow authenticated users
+      allow.guest()                       // Allow unauthenticated users
+    ])
+    .identifier(['name'])                 // Use name as the primary key
 });
 
 export type Schema = ClientSchema<typeof schema>;
@@ -58,6 +74,11 @@ export const data = defineData({
     // API Key is used for a.allow.public() rules
     apiKeyAuthorizationMode: {
       expiresInDays: 30,
+    },
+    // Enable user authentication
+    userPoolAuthorizationMode: {
+      userPoolId: process.env.USER_POOL_ID,
+      userPoolClientId: process.env.USER_POOL_CLIENT_ID,
     },
   },
 });
@@ -99,5 +120,26 @@ const newItem = await client.models.Item.create({
 await client.models.Item.delete({
   QuestionId: 123,
   CreatedDate: "2024-03-14"
+})
+
+// Prompt Management Examples:
+// Get a specific prompt
+const { data: prompt } = await client.models.Prompt.get({
+  name: "rationale-system-prompt"
+})
+
+// Create a new prompt
+const newPrompt = await client.models.Prompt.create({
+  name: "rationale-system-prompt",
+  content: "You are an expert in...",
+  description: "System prompt for generating rationales",
+  version: 1
+})
+
+// Update a prompt
+const updatedPrompt = await client.models.Prompt.update({
+  name: "rationale-system-prompt",
+  content: "Updated prompt content...",
+  version: 2
 })
 =========================================================================*/
