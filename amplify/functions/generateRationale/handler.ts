@@ -136,7 +136,7 @@ export async function callBedrock(prompt: string): Promise<string> {
       anthropic_version: "bedrock-2023-05-31",
       max_tokens: 4096,
       temperature: 0.2,
-      system: "You are an expert in educational assessment and certification exam question analysis. Respond with valid JSON only.",
+      system: "You are an expert in educational assessment and AWS certification exam question analysis. Respond with valid JSON only.",
       messages: [
         {
           role: "user", 
